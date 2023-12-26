@@ -18,6 +18,7 @@ int main() {
 	do {
 		token = lexer.getNextToken();
 		std::cout << "type: " << token.type << ", value: " << token.value << std::endl;
-	} while (token.type != "ENDFILE");
+		
+	} while (token.type!="ENDFILE");
 	//close file
 }

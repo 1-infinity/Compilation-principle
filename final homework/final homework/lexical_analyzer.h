@@ -21,6 +21,7 @@ public:
     Lexer(const std::string& filename);
     ~Lexer();
     Token getNextToken();
+    Token getPeekChar();
     vector<string> keyWord;
     vector<string> opt;
     vector<char> boundWord;

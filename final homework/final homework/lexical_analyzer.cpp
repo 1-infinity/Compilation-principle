@@ -44,6 +44,13 @@ Lexer::~Lexer(){
     file.close();
 }
 
+Token Lexer::getPeekChar(){
+    string type;
+    char str[2]={file.peek(),0};
+    type.append(str);
+    return Token(type,"-");
+}
+
 // 读取下一个字符
 void Lexer::readNextChar() {
     file.get(currentChar);
@@ -51,7 +58,7 @@ void Lexer::readNextChar() {
 
 // 跳过空白字符
 void Lexer::skipWhitespace() {
-    while (isspace(currentChar)) {
+    while (isspace(currentChar) && currentChar != EOF) {
         readNextChar();
     }
 }
@@ -86,7 +93,7 @@ bool Lexer::isBound(const char s) {
 // 扫描标识符
 Token Lexer::scanIdentifier() {
     string identifier;
-    while (isalnum(currentChar)) {
+    while (isalnum(currentChar) && currentChar != EOF) {
         identifier += currentChar;
         readNextChar();
     }
@@ -121,7 +128,7 @@ Token Lexer::scanOpt() {
         readNextChar();
     }
 
-    return Token(symbol, "-");
+    return Token("ROP", symbol);
 }
 
 // 扫描界符
@@ -137,18 +144,23 @@ Token Lexer::getNextToken() {
     skipWhitespace();
 
     if (isalpha(currentChar)) {
+        // std::cout<<"isAlpha"<<endl;
         return scanIdentifier();
     }
     else if (isdigit(currentChar)) {
+        // std::cout<<"isDigit"<<endl;
         return scanNumber();
     }
     else if (isBound(currentChar)) {
+        // std::cout<<"isChar"<<endl;
         return scanBound();
     }
     else if (isOpt(string(1, currentChar))) {
+        // std::cout<<"isOpt"<<endl;
         return scanOpt();
     }
     else if (file.eof()) {
+        // std::cout<<"isEOF"<<endl;
         return Token("ENDFILE", "-");
     }
     else {
