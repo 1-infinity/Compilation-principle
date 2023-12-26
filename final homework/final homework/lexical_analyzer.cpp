@@ -4,11 +4,44 @@
 #include <algorithm>
 
 // 构造函数
-Lexer::Lexer(const std::string& filename) : file(filename), currentChar(' ') {
+Lexer::Lexer(const std::string& filename) : currentChar(' ') {
+    file.open(filename,ios::in);
     if (!file.is_open()) {
-        std::cerr << "无法打开文件 " << filename << std::endl;
+        std::cerr << "Cannot open file! " << filename << std::endl;
         exit(1);
     }
+    keyWord.push_back("PROGRAM");
+    keyWord.push_back("BEGIN");
+    keyWord.push_back("END");
+    keyWord.push_back("CONST");
+    keyWord.push_back("VAR");
+    keyWord.push_back("WHILE");
+    keyWord.push_back("DO");
+    keyWord.push_back("IF");
+    keyWord.push_back("THEN");
+
+    opt.push_back("+");
+    opt.push_back("-");
+    opt.push_back("*");
+    opt.push_back("/");
+    opt.push_back(":=");
+    opt.push_back("=");
+    opt.push_back("<>");
+    opt.push_back("<");
+    opt.push_back("<=");
+    opt.push_back(">");
+    opt.push_back(">=");
+    opt.push_back(":");
+
+    boundWord.push_back('(');
+    boundWord.push_back(')');
+    boundWord.push_back(';');
+    boundWord.push_back(',');
+
+}
+
+Lexer::~Lexer(){
+    file.close();
 }
 
 // 读取下一个字符
@@ -60,10 +93,10 @@ Token Lexer::scanIdentifier() {
 
     // 检查是否是关键字
     if (isKeyword(identifier)) {
-        return { identifier, "-"};
+        return Token(identifier, "-");
     }
     else {
-        return { "ID", identifier};
+        return Token("ID", identifier);
     }
 }
 
@@ -74,7 +107,7 @@ Token Lexer::scanNumber() {
         number += currentChar;
         readNextChar();
     }
-    return { "INT", number};
+    return Token("INT", number);
 }
 
 // 扫描
@@ -88,7 +121,7 @@ Token Lexer::scanOpt() {
         readNextChar();
     }
 
-    return { symbol, "-" };
+    return Token(symbol, "-");
 }
 
 // 扫描界符
@@ -96,7 +129,7 @@ Token Lexer::scanBound() {
     string symbol(1, currentChar);
     readNextChar();
 
-    return { symbol, "-" };
+    return Token(symbol, "-");
 }
 
 // 获取下一个Token
@@ -116,11 +149,11 @@ Token Lexer::getNextToken() {
         return scanOpt();
     }
     else if (file.eof()) {
-        return { "ENDFILE", "-" };
+        return Token("ENDFILE", "-");
     }
     else {
         // 无法识别的字符
-        cerr << "无法识别的字符: " << currentChar << endl;
+        cerr << "error token: " << currentChar << endl;
         exit(1);
     }
 }

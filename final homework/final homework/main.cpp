@@ -13,11 +13,11 @@ int main() {
 	//cin >> filename;
 	
 	//open file
-	Lexer lexer(".\\test.txt");
+	Lexer lexer("test.txt");
 	Token token;
 	do {
 		token = lexer.getNextToken();
-		std::cout << "ÀàÐÍ: " << token.type << ", Öµ: " << token.value << std::endl;
-	} while (token.type != "END");
+		std::cout << "type: " << token.type << ", value: " << token.value << std::endl;
+	} while (token.type != "ENDFILE");
 	//close file
 }

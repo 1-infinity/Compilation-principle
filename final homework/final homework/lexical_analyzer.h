@@ -8,14 +8,22 @@ using namespace std;
 struct Token {
 	string type;
 	string value;
+    Token(string Type, string Value) {
+        type = Type;
+        value = Value;
+    }
+    Token(){
+
+    }
 };
 class Lexer {
 public:
     Lexer(const std::string& filename);
+    ~Lexer();
     Token getNextToken();
-    vector<string> keyWord = { "PROGRAM","BEGIN","END","CONST","VAR","WHILE","DO","IF","THEN" };
-    vector<string> opt = { "+", "-", "*", "/",":=" ,"=", "<>", "<", "<=", ">", ">=" , ":"};
-    vector<char> boundWord = { '(',')',';' , ',' };
+    vector<string> keyWord;
+    vector<string> opt;
+    vector<char> boundWord;
 private:
     string name;
     ifstream file;
