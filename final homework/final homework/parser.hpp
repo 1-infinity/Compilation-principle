@@ -45,9 +45,9 @@ typedef struct {
 
 typedef struct {
     string name;
-    string prop;
+    string prop; // property
     string Register;
-} var;
+} var; // variable
 
 Lexer lexer("text.txt");
 

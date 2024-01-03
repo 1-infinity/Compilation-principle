@@ -45,6 +45,7 @@ Lexer::~Lexer(){
 }
 
 Token Lexer::getPeekChar(){
+    // ºöÂÔ¿Õ¸ñ
     string type;
     char str[2]={file.peek(),0};
     type.append(str);
