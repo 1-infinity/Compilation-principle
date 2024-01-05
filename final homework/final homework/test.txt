@@ -1,9 +1,9 @@
 PROGRAM add
-VAR x1,y2;
+VAR x,y;
 BEGIN
-    xxx:=1123242;
-    yyy:=2147483647
-    WHILE xxx<5 DO xxx:=x+1
-    IF yyy>0 THEN yyy:=yyy-1
-    yyy:=yyy+xxx
+    x:=1;
+    y:=2
+    WHILE x<5 DO x:=x+1
+    IF y>0 THEN y:=y-1
+    y:=y+x
 END

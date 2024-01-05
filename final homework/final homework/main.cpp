@@ -9,7 +9,7 @@ using namespace std;
 int main() {
 	string filename;
 	string line;
-	Parser parser("F:\\2152592\\homework\\3-1\\±àÒëÔ­Àí\\ÆÚÄ©ÏîÄ¿\\Compilation-principle\\test.txt");
-	parser.ParserAndCodeGenerator();
+	Parser parser("test.txt");
+	vector<Code> code = parser.ParserAndCodeGenerator();
 	//close file
 }
