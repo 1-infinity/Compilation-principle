@@ -3,9 +3,9 @@
 #include<iostream>
 #include <algorithm>
 
-// ¹¹Ôìº¯Êı
+// æ„é€ å‡½æ•°
 Lexer::Lexer(const std::string& filename) : currentChar(' ') {
-    file.open(filename,ios::in);
+    file.open(filename, ios::in);
     if (!file.is_open()) {
         std::cerr << "Cannot open file! " << filename << std::endl;
         exit(1);
@@ -38,30 +38,26 @@ Lexer::Lexer(const std::string& filename) : currentChar(' ') {
     boundWord.push_back(';');
     boundWord.push_back(',');
 
+
 }
 
 Lexer::~Lexer(){
     file.close();
 }
 
-Token Lexer::getPeekChar(){
-    // ºöÂÔ¿Õ¸ñ
-    string type;
-    char str[2]={file.peek(),0};
-    type.append(str);
-    return Token(type,"-");
-}
-
-// ¶ÁÈ¡ÏÂÒ»¸ö×Ö·û
-void Lexer::readNextChar() {
-    file.get(currentChar);
-}
-
-// Ìø¹ı¿Õ°××Ö·û
-void Lexer::skipWhitespace() {
-    while (isspace(currentChar) && currentChar != EOF) {
-        readNextChar();
+// è¯»å–ä¸‹ä¸€ä¸ªå­—ç¬¦
+bool Lexer::readNextChar() {
+    if (file.get(currentChar)) {
+        return true;
     }
+    else {
+        return false;
+    }
+}
+
+// è·³è¿‡ç©ºç™½å­—ç¬¦
+void Lexer::skipWhitespace() {
+    while (isspace(currentChar) && readNextChar()) {    }
 }
 
 bool Lexer::isKeyword(const string& s) {
@@ -91,15 +87,16 @@ bool Lexer::isBound(const char s) {
     return false;
 }
 
-// É¨Ãè±êÊ¶·û
+// æ‰«ææ ‡è¯†ç¬¦
 Token Lexer::scanIdentifier() {
     string identifier;
-    while (isalnum(currentChar) && currentChar != EOF) {
+    bool flag = true;
+    while (isalnum(currentChar) && flag) {
         identifier += currentChar;
-        readNextChar();
+        flag = readNextChar();
     }
 
-    // ¼ì²éÊÇ·ñÊÇ¹Ø¼ü×Ö
+    // æ£€æŸ¥æ˜¯å¦æ˜¯å…³é”®å­—
     if (isKeyword(identifier)) {
         return Token(identifier, "-");
     }
@@ -108,7 +105,7 @@ Token Lexer::scanIdentifier() {
     }
 }
 
-// É¨ÃèÊı×Ö
+// æ‰«ææ•°å­—
 Token Lexer::scanNumber() {
     string number;
     while (isdigit(currentChar)) {
@@ -118,13 +115,13 @@ Token Lexer::scanNumber() {
     return Token("INT", number);
 }
 
-// É¨Ãè
+// æ‰«æ
 Token Lexer::scanOpt() {
     string symbol(1, currentChar);
     readNextChar();
 
-    // ¼ì²éÊÇ·ñÊÇ¶à×Ö·ûÔËËã·û
-    if (currentChar == '='|| currentChar == '>') {
+    // æ£€æŸ¥æ˜¯å¦æ˜¯å¤šå­—ç¬¦è¿ç®—ç¬¦
+    if (currentChar == '=' || currentChar == '>') {
         symbol += currentChar;
         readNextChar();
     }
@@ -132,7 +129,7 @@ Token Lexer::scanOpt() {
     return Token("ROP", symbol);
 }
 
-// É¨Ãè½ç·û
+// æ‰«æç•Œç¬¦
 Token Lexer::scanBound() {
     string symbol(1, currentChar);
     readNextChar();
@@ -140,7 +137,7 @@ Token Lexer::scanBound() {
     return Token(symbol, "-");
 }
 
-// »ñÈ¡ÏÂÒ»¸öToken
+// è·å–ä¸‹ä¸€ä¸ªToken
 Token Lexer::getNextToken() {
     skipWhitespace();
 
@@ -161,13 +158,33 @@ Token Lexer::getNextToken() {
         return scanOpt();
     }
     else if (file.eof()) {
-        // std::cout<<"isEOF"<<endl;
         return Token("ENDFILE", "-");
     }
     else {
-        // ÎŞ·¨Ê¶±ğµÄ×Ö·û
+        // æ— æ³•è¯†åˆ«çš„å­—ç¬¦
         cerr << "error token: " << currentChar << endl;
         exit(1);
     }
 }
 
+list<Token> Lexer::generateTokens() {
+    Token token;
+    do {
+        token = getNextToken();
+        tokens.push_back(token);
+    } while (token.type != "END");
+    return tokens;
+}
+
+Token Lexer::getToken() {
+    return *it;
+}
+
+Token Lexer::nextToken() {
+    return *next(it);
+}
+
+Token Lexer::getNext() {
+    ++it;
+    return *it;
+}

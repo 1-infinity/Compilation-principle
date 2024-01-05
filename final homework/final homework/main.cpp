@@ -2,23 +2,14 @@
 #include <fstream>
 #include <string>
 #include "lexical_analyzer.h"
+#include "parser.hpp"
 
 using namespace std;
 
 int main() {
 	string filename;
 	string line;
-	//ÇëÊäÈëÎÄ¼şÃû
-	//cout << "please input file name" << endl;
-	//cin >> filename;
-	
-	//open file
-	Lexer lexer("test.txt");
-	Token token;
-	do {
-		token = lexer.getNextToken();
-		std::cout << "type: " << token.type << ", value: " << token.value << std::endl;
-		
-	} while (token.type!="ENDFILE");
+	Parser parser("F:\\2152592\\homework\\3-1\\Â±Ã Ã’Ã«Ã”Â­Ã€Ã­\\Ã†ÃšÃ„Â©ÃÃ®Ã„Â¿\\Compilation-principle\\test.txt");
+	parser.ParserAndCodeGenerator();
 	//close file
 }

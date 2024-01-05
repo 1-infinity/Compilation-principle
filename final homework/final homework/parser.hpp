@@ -1,7 +1,7 @@
+
+#pragma once
 #include <iostream>
 #include <map>
-#include <vector>
-#include <string>
 #include <queue>
 #include "lexical_analyzer.h"
 using namespace std;
@@ -10,7 +10,7 @@ Token token;
 
 enum Elem {
     ERROR,      //错误
-    P=1,        //程序
+    P = 1,        //程序
     SP,         //子程序
     PHEAD,      //程序首部
     IDFS,       //标识符
@@ -45,17 +45,17 @@ typedef struct {
 
 typedef struct {
     string name;
-    string prop; // property
+    string prop;
     string Register;
-} var; // variable
-
-// Lexer lexer("text.txt");
+} var;
 
 class Parser {
 private:
     vector<Code> MidCode;
     var Vars[100];
+    // 起始地址
     int init;
+    // MidCode指针
     int ptr;
     int temp_number;
     Lexer lexer;
@@ -63,14 +63,14 @@ private:
     void P();
     void PHEAD();
     void SP();
-    void C(bool firstCheck=false);// 如果看了FISRT，则第一个token已经被读取，此函数不再读取
+    void C();// 如果看了FISRT，则第一个token已经被读取，此函数不再读取
     void CDF();
     void UINT();
-    void V(bool firstCheck=false);// 同上
+    void V();// 同上
     void IDFS();
-    void CPLXST(bool firstCheck=false);
+    void CPLXST();
     void ST();
-    void ASNST(Token token);
+    void ASNST();
     string EXP();
     void _EXP();// 消除左递归
     string T();
@@ -78,20 +78,20 @@ private:
     string F();
     string AOP();
     string MOP();
-    void CONDST(bool firstCheck=false);
-    void LOOP(bool firstCheck=false);
+    void CONDST();
+    void LOOP();
     void COND();
     string ROP();
-    void NULLST(bool firstCheck=false);
-    void M(){}
-
-    string getTemp();// 获取T1, T2, ...
-    int emit(string op, string arg1, string arg2, string result);// 负责写入一条中间代码，返回该代码索引
+    void NULLST();
+    void M(); // 空，打断
+      
+    string getTemp();// 寄存器值T1, T2, ...
+    int emit(string op, string arg1, string arg2, string result);// 璐熻矗鍐欏叆涓�鏉′腑闂翠唬鐮侊紝杩斿洖璇ヤ唬鐮佺储寮�
     int getPreCodePtr();
     int deletePreCode();
 public:
-    Parser(const string& filename); 
-    vector<Code> ParserAndCodeGenerator(){
+    Parser(const string& filename);
+    vector<Code> ParserAndCodeGenerator() {
         P();
         return MidCode;
     }
@@ -144,208 +144,233 @@ void Parser::P(){
 }
 
 // PHEAD -> 'PROGRAM' IDFS
-void Parser::PHEAD(){
-    token = lexer.getNextToken();
-    if("PROGRAM" != token.type){
-        cerr<<"Program doesn't start with \'PROGRAM\'!"<<endl;
+void Parser::PHEAD() {
+    token = lexer.getToken();
+    if (token.type == "PROGRAM") {
+        token = lexer.getNext();
+    }
+    else {
+        cerr << "Program doesn't start with \'PROGRAM\'!" << endl;
         exit(1);
     }
     IDFS();
 }
 
 // SP-> [C][V]ST
-void Parser::SP(){
-    token = lexer.getNextToken();
-    if("CONST" == token.type){
-        C(true);
-        token = lexer.getNextToken();
-        if("VAR" == token.type) {
-            V(true);
-        }
+void Parser::SP() {
+    token = lexer.getToken();
+    if (token.type == "CONST") {
+        C();
     }
-    else if("VAR" == token.type){
-        V(true);
+    if (token.type == "VAR") {
+        V();
     }
     // sentence
     ST();
 }
 
 // C-> 'CONST'CDF{,CDF};
-void Parser::C(bool firstCheck=false) {
-    if(firstCheck == false){
-        token = lexer.getNextToken();
-        if(token.type != "CONST"){
-            cerr << "\'CONST\' symbol missing"<<endl;
-            exit(1);
-        }
-    }
-
-    while(true) {
-        CDF();
-        token=lexer.getNextToken();
-        if(token.type == ",")
-            continue;
-        else if(token.type == ";")
-            break;
-        else{
-            cerr<<"Unrecoginzed symbol when initilizing const values"<<endl;
-        }
+void Parser::C() {
+    token = lexer.getToken();
+    if (token.type == "CONST") {
+        lexer.getNext();
+        do {
+            CDF();
+            token = lexer.getToken();
+            if (token.type == ",") {
+                token = lexer.getNext();
+                continue;
+            }
+            else if (token.type == ";") {
+                token = lexer.getNext();
+                break;
+            }
+            else
+                cout << "Unrecoginzed symbol when initilizing const values" << endl;
+        } while (true);
     }
 }
 
 // CDF->IDFS:=UINT
-void Parser::CDF(){
+void Parser::CDF() {
     IDFS();
-    token = lexer.getNextToken();
-    if(token.type != ":="){
-        cerr<<"Tempt to initilizing const values with error identifier"<<endl;
+    token = lexer.getToken();
+    if (token.type == "ROP" && token.value == ":=") {
+        token = lexer.getNext();
+    }
+    else {
+        cerr << "Tempt to initilizing const values with error identifier" << endl;
         exit(1);
     }
     UINT();
 }
 
 // UINT->N{N}
-void Parser::UINT(){
-    token = lexer.getNextToken();
-    if(token.type!="INT"){
-        cerr<<"Using error type"<<endl;
+void Parser::UINT() {
+    token = lexer.getToken();
+    if (token.type == "INT") {
+        token = lexer.getNext();
+    }
+    else{
+        cerr << "Using error type" << endl;
         exit(1);
     }
 }
 
 // V->'VAR'IDFS{,IDFS};
-void Parser::V(bool firstCheck=false){
-    if(firstCheck == false){
-        token = lexer.getNextToken();
-        if(token.type != "VAR"){
-            cerr << "\'VAR\' symbol missing"<<endl;
-            exit(1);
-        }
+void Parser::V() {
+    token = lexer.getToken();
+    if (token.type == "VAR") {
+        token = lexer.getNext();
+    }
+    else {
+        cerr << "\'VAR\' symbol missing" << endl;
+        exit(1);
     }
 
-    while(true) {
+    while (true) {
         IDFS();
-        token=lexer.getNextToken();
-        if(token.type == ",")
+        token = lexer.getToken();
+        if (token.type == ",") {
+            token = lexer.getNext();
             continue;
-        else if(token.type == ";")
+        }
+        else if (token.type == ";") {
+            token = lexer.getNext();
             break;
-        else{
-            cerr<<"Unrecoginzed symbol when initilizing vars"<<endl;
+        }
+        else {
+            cerr << "Unrecoginzed symbol when initilizing vars" << endl;
         }
     }
 }
 
 // IDFS —> L{L|D}
-void Parser::IDFS(){
-    token = lexer.getNextToken();
-    if(token.type!="ID"){
-        cerr<<"Identifier format wrong"<<endl;
+void Parser::IDFS() {
+    token = lexer.getToken();
+    if (token.type == "ID") {
+        token = lexer.getNext();
+        return;
+    }
+    else {
+        cerr << "Identifier format wrong" << endl;
         exit(1);
+    }
+}
+
+
+// ST—>ASNST|CONDST|LOOP|CPLXST|NULLST
+void Parser::ST() {
+    // 根据首符集判断
+    if ("IF" == token.type) {
+        CONDST();
+    }
+    else if ("WHILE" == token.type) {
+        LOOP();
+    }
+    else if ("BEGIN" == token.type) {
+        CPLXST();
+    }
+    else if ("END" == token.type) {
+        NULLST();
+    }
+    else if (token.type == "ID") {
+        ASNST();
+    }
+    else {
+        cerr << "ST error" << endl;
     }
 }
 
 // CPLXST—>'BEGIN' ST{;ST}'END'
-void Parser::CPLXST(bool firstCheck=false){
-    if(firstCheck == false){
-        token=lexer.getNextToken();
-        if(token.type!="BEGIN"){
-            cerr<<"Missing \'BEGIN\' with complex sentence"<<endl;
-            exit(1);
-        }
+void Parser::CPLXST() {
+    if (token.type == "BEGIN") {
+        token = lexer.getNext();
     }
-    while(true){
+    else {
+        cerr << "Missing \'BEGIN\' with complex sentence" << endl;
+        exit(1);
+    }
+    while (true) {
         ST();
-        token=lexer.getNextToken();
-        if(";" == token.type)
+        if (";" == token.type) {
+            token = lexer.getNext();
             continue;
-        else if("END" == token.type)
+        }
+        else if ("END" == token.type) {
             break;
-        else{
-            cerr<<"sentence ends with wrong codes"<<endl;
+        }
+        else {
+            cerr << "sentence ends with wrong codes" << endl;
             exit(1);
         }
-    }
-}
-
-// ST—>ASNST|CONDST|LOOP|CPLXST|NULLST
-void Parser::ST(){
-    token = lexer.getNextToken();
-    if("IF" == token.type){
-        CONDST(true);
-    }
-    else if("WHILE" == token.type){
-        LOOP(true);
-    }
-    else if("BEGIN"== token.type){
-        CPLXST(true);
-    }
-    else if(";" == token.type){
-        NULLST(true);
-    }
-    else{
-        ASNST(token);
     }
 }
 
 // ASNST—>IDFS:=EXP
-void Parser::ASNST(Token up_token){
-    if(up_token.type!="ID"){
-        cerr<<"Assignment sentence wrong: not using identifier"<<endl;
-        exit(1);
+void Parser::ASNST(){
+    IDFS();
+    if (token.type == "ROP" && token.value == ":=") {
+        token = lexer.getNext();
     }
-    token = lexer.getNextToken();
-    if(":=" != token.type){
+    else {
         cerr<<"Assignment sentence wrong: not using \':=\'"<<endl;
         exit(1);
     }
     EXP();
 }
 
+
 // <EXP>—[+|-]T EXP'
-string Parser::EXP(){
-    token = lexer.getNextToken();
-    if(token.type != "+" || token.type == "-"){
-        token = lexer.getNextToken();
+string Parser::EXP() {
+    if (token.value == "-" || token.value == "+") {
+        token = lexer.getNext();
+        T();
     }
-    T();
+    else if (token.type == "ID" || token.type == "INT" || token.type == "(") {
+        T();
+    }
+    else {
+        cerr << "Wrong expression" << endl;
+        exit(1);
+    }
     _EXP();
     return "";
 }
 
 // EXP'->AOP T EXP' | <NULL>
-void Parser::_EXP(){
-    token = lexer.getPeekChar();
-    if(";"==token.type){
+void Parser::_EXP() {
+    if ((token.type == "ROP" && token.value == "=") || (token.type == "ROP" && token.value == "<>") || (token.type == "ROP" && token.value == "<") || (token.type == "ROP" && token.value == "<=") || (token.type == "ROP" && token.value == ">") || (token.type == "ROP" && token.value == ">=") || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END") {
         return;
     }
-    AOP();
+    MOP();
     T();
     _EXP();
 }
 
-// T—>FT'
+
+// T鈥�>FT'
 string Parser::T(){
     string value = F();
-    int index = emit("", value, "", "");// 第一个Factor的代码生成，后期会改
+    int index = emit("", value, "", "");// 绗竴涓狥actor鐨勪唬鐮佺敓鎴愶紝鍚庢湡浼氭敼
     string str = _T();
     if(str == "<null>"){
-        return value; // 先前emit的代码被递归函数删除
+        return value; // 鍏堝墠emit鐨勪唬鐮佽閫掑綊鍑芥暟鍒犻櫎
     }
     else {
-        return str; // 此表达式最终结果的临时存储（T形式）
+        return str; // 姝よ〃杈惧紡鏈�缁堢粨鏋滅殑涓存椂瀛樺偍锛圱褰㈠紡锛�
     }
 }
 
 // T'->MOP F T' | <NULL>
-string Parser::_T(){
-    token = lexer.getPeekChar();
-    int pre = getPreCodePtr();
-    if(";" == token.type){
-        string ret = MidCode[pre].arg1; // 取最后一个的结果
+string Parser::_T() {
+    // 空字
+    if ((token.type == "ROP" && token.value == "+") || (token.type == "ROP" && token.value == "-") || (token.type == "ROP" && token.value == "=") || (token.type == "ROP" && token.value == "<>") || (token.type == "ROP" && token.value == "<") || (token.type == "ROP" && token.value == "<=") || (token.type == "ROP" && token.value == ">") || (token.type == "ROP" && token.value == ">=") || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END") {
+        string ret = MidCode[pre].arg1; // 鍙栨渶鍚庝竴涓殑缁撴灉
         deletePreCode();
         return ret;
     }
+    
     string opt = MOP();
     string second_factor = F();
     string this_result = getTemp();
@@ -358,106 +383,127 @@ string Parser::_T(){
 }
 
 // F—>IDFS|UINT|(EXP)
-string Parser::F(){
-    token = lexer.getNextToken();
-    if("ID" == token.type){
-        return token.value;
+string Parser::F() {
+    token = lexer.getToken();
+    if ("ID" == token.type) {
+        IDFS();
     }
-    else if("INT" == token.type){
-        return token.value;
+    else if ("INT" == token.type) {
+        UINT();
     }
-    else if("(" == token.type){
-        string str = EXP();
-        token = lexer.getNextToken();
-        if(")" != token.type){
-            cerr<<"curves unmatched"<<endl;
+    else if ("(" == token.type) {
+        token = lexer.getNext();
+        EXP();
+        if (")" == token.type) {
+            token = lexer.getNext();
+        }
+        else {
+            cerr << "curves unmatched" << endl;
             exit(1);
         }
-        return str; //返回表达式的值（T的形式）
     }
-    else{
-        cerr<<"Wrong Factor"<<endl;
+    else {
+        cerr << "Wrong Factor" << endl;
         exit(1);
     }
     return "";
 }
 
 // AOP—>+|-
-string Parser::AOP(){
-    token = lexer.getNextToken();
-    if("+"!=token.type && "-"!=token.type){
-        cerr<<"wrong add and substract operator"<<endl;
+string Parser::AOP() {
+    token = lexer.getToken();
+    if ((token.type == "ROP" && token.value == "+") || (token.type == "ROP" && token.value == "-")) {
+        token = lexer.getNext();
+        return token.value;
+    }
+    else {
+        cerr << "wrong add and substract operator" << endl;
         exit(1);
     }
-    return token.type;
+    return "";
 }
 
 // MOP->*|/
-string Parser::MOP(){
-    token = lexer.getNextToken();
-    if("*"!=token.type && "/"!=token.type){
-        cerr<<"wrong add and substract operator"<<endl;
+string Parser::MOP() {
+    token = lexer.getToken();
+    if ((token.type == "ROP" && token.value == "*") || (token.type == "ROP" && token.value == "/")) {
+        token = lexer.getNext();
+        return token.value;
+    }
+    else {
+        cerr << "wrong add and substract operator" << endl;
         exit(1);
     }
-    return token.type;
+    return "";
 }
 
-void Parser::CONDST(bool firstCheck=false){
-    if(firstCheck==false){
-        token = lexer.getNextToken();
-        if("IF"!=token.type){
-            cerr<<"error condition sentence"<<endl;
+// CONDST->IF COND THEN ST
+void Parser::CONDST() {
+    token = lexer.getToken();
+    if ("IF" == token.type) {
+        token = lexer.getNext();
+        COND();
+        if (token.type == "THEN") {
+            token = lexer.getNext();
+            ST();
+        }
+        else {
+            cerr << "error condition sentence" << endl;
             exit(1);
         }
     }
-    COND();
-    token = lexer.getNextToken();
-    if("THEN"!=token.type){
-        cerr<<"error condition sentence"<<endl;
+    else {
+        cerr << "error condition sentence" << endl;
         exit(1);
     }
-    ST();
-    
 }
-void Parser::LOOP(bool firstCheck=false){
-    if(firstCheck==false){
-        token = lexer.getNextToken();
-        if("WHILE"!=token.type){
-            cerr<<"error loop sentence"<<endl;
+
+// LOOP->WHILE COND DO ST
+void Parser::LOOP() {
+    if (token.type == "WHILE") {
+        token = lexer.getNext();
+        COND();
+        if (token.type == "DO") {
+            token = lexer.getNext();
+        }
+        else {
+            cerr << "error in loop:lose DO" << endl;
             exit(1);
         }
+        ST();
     }
-    COND();
-    token = lexer.getNextToken();
-    if("DO"!=token.type){
-        cerr<<"error loop sentence"<<endl;
+    else {
+        cerr << "error in loop:lose WHILE" << endl;
         exit(1);
     }
-    ST();
 }
-void Parser::COND(){
+ 
+// COND->EXP ROP EXP
+void Parser::COND() {
     EXP();
     ROP();
     EXP();
-    return;// 返回待回填的索引
 }
-string Parser::ROP(){
-    token = lexer.getNextToken();
-    if("ROP"!=token.type){
-        cerr<<"error condition operator"<<endl;
+
+// ROP-> = | <> | < | <= | > | >=
+string Parser::ROP() {
+    if (token.type == "ROP") {
+        token = lexer.getNext();
+    } 
+    else {
+        cerr << "error condition operator" << endl;
         exit(1);
     }
     return token.value;
 }
 
-// NULLST-> 空
-void Parser::NULLST(bool firstCheck=false)
+// M->空
+void Parser::NULLST()
 {
-    if(firstCheck==false){
-        token = lexer.getPeekChar();
-        if(";"!=token.type){
-            cerr<<"not a null sentence"<<endl;
-            exit(1);
-        }
-    }
+    return;
 }
+
+//void Parser::M() {
+//
+//    return;
+//}
