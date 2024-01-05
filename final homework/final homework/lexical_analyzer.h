@@ -2,27 +2,47 @@
 #include<string>
 #include<vector>
 #include <fstream>
+#include<list>
 
 using namespace std;
 
 struct Token {
-	string type;
-	string value;
+    string type;
+    string value;
+    Token(string Type, string Value) {
+        type = Type;
+        value = Value;
+    }
+    Token() {
+
+    }
 };
 class Lexer {
 public:
     Lexer(const std::string& filename);
-    Token getNextToken();
-    vector<string> keyWord = { "PROGRAM","BEGIN","END","CONST","VAR","WHILE","DO","IF","THEN" };
-    vector<string> opt = { "+", "-", "*", "/",":=" ,"=", "<>", "<", "<=", ">", ">=" , ":"};
-    vector<char> boundWord = { '(',')',';' , ',' };
+    ~Lexer();
+
+    //生成所有的token
+    list<Token> tokens;
+    // 获取当前的token
+    Token getToken();
+    // 获得到下一个token
+    Token nextToken();
+    // 查看下一个token
+    Token getNext();
+
 private:
     string name;
     ifstream file;
     char currentChar;
     Token currentToken;
+    vector<string> keyWord;
+    vector<string> opt;
+    vector<char> boundWord;
 
-    void readNextChar();
+    list<Token>::iterator it;
+
+    bool readNextChar();
     void skipWhitespace();
     bool isKeyword(const string& s);
     bool isOpt(const string& s);
@@ -31,5 +51,8 @@ private:
     Token scanNumber();
     Token scanOpt();
     Token scanBound();
+    list<Token> generateTokens();
 
+    Token getNextToken();
+    Token getPeekChar();
 };
