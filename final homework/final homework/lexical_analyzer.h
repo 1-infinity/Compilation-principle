@@ -37,7 +37,9 @@ private:
     char currentChar;
     Token currentToken;
     vector<string> keyWord;
-    vector<string> opt;
+    vector<string> Aopt;
+    vector<string> Mopt;
+    vector<string> Ropt;
     vector<char> boundWord;
 
     list<Token>::iterator it;
@@ -45,11 +47,20 @@ private:
     bool readNextChar();
     void skipWhitespace();
     bool isKeyword(const string& s);
-    bool isOpt(const string& s);
+    //是否为加法运算符
+    bool isAopt(const string& s);
+    //是否为乘法运算符
+    bool isMopt(const string& s);
+    //是否为逻辑运算符
+    bool isRopt(const string& s);
     bool isBound(const char s);
     Token scanIdentifier();
     Token scanNumber();
-    Token scanOpt();
+
+    Token scanAopt();
+    Token scanMopt();
+    Token scanRopt();
+
     Token scanBound();
     list<Token> generateTokens();
 
