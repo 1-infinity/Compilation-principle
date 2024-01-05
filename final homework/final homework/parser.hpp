@@ -38,9 +38,9 @@ enum Elem {
 typedef struct {
     int address;
     string op;
-    string op1;
-    string op2;
-    string op3;
+    string arg1;
+    string arg2;
+    string result;
 } Code;
 
 typedef struct {
@@ -49,14 +49,16 @@ typedef struct {
     string Register;
 } var; // variable
 
-Lexer lexer("text.txt");
+// Lexer lexer("text.txt");
 
 class Parser {
 private:
-    Code MidCode[1000];
+    vector<Code> MidCode;
     var Vars[100];
     int init;
     int ptr;
+    int temp_number;
+    Lexer lexer;
 
     void P();
     void PHEAD();
@@ -68,29 +70,71 @@ private:
     void IDFS();
     void CPLXST(bool firstCheck=false);
     void ST();
-    void ASNST();
-    void EXP();
+    void ASNST(Token token);
+    string EXP();
     void _EXP();// 消除左递归
-    void T();
-    void _T();// 消除左递归
-    void F();
-    void AOP();
-    void MOP();
+    string T();
+    string _T();// 消除左递归
+    string F();
+    string AOP();
+    string MOP();
     void CONDST(bool firstCheck=false);
     void LOOP(bool firstCheck=false);
     void COND();
-    void ROP();
+    string ROP();
     void NULLST(bool firstCheck=false);
+    void M(){}
+
+    string getTemp();// 获取T1, T2, ...
+    int emit(string op, string arg1, string arg2, string result);// 负责写入一条中间代码，返回该代码索引
+    int getPreCodePtr();
+    int deletePreCode();
 public:
-    Parser(); 
-    void ParserAndCodeGenerator();
+    Parser(const string& filename); 
+    vector<Code> ParserAndCodeGenerator(){
+        P();
+        return MidCode;
+    }
 };
 
-void Parser::ParserAndCodeGenerator(){}
-
-Parser::Parser() {
+Parser::Parser(const string& filename):lexer(filename) {
     init = 100;
     ptr = 0;
+    temp_number = 0;
+}
+
+int Parser::getPreCodePtr()
+{
+    return MidCode.size()-1;
+}
+
+int Parser::emit(string op, string arg1, string arg2, string result){
+    Code code;
+    code.op=op;
+    code.arg1=arg1;
+    code.arg2=arg2;
+    code.result=result;
+    code.address=init;
+    MidCode.push_back(code);
+    ptr++;
+    return init++;
+}
+
+int Parser::deletePreCode()
+{
+    if(MidCode.empty())
+        return -1;
+    MidCode.pop_back();
+    init--;
+    ptr--;
+}
+
+string Parser::getTemp()
+{
+    string temp;
+    temp.append("T");
+    temp.append(std::to_string(++temp_number));
+    return temp;
 }
 
 // P->PHEAD SP
@@ -240,14 +284,13 @@ void Parser::ST(){
         NULLST(true);
     }
     else{
-        ASNST();
+        ASNST(token);
     }
 }
 
 // ASNST—>IDFS:=EXP
-void Parser::ASNST(){
-    token = lexer.getNextToken();
-    if(token.type!="ID"){
+void Parser::ASNST(Token up_token){
+    if(up_token.type!="ID"){
         cerr<<"Assignment sentence wrong: not using identifier"<<endl;
         exit(1);
     }
@@ -259,82 +302,104 @@ void Parser::ASNST(){
     EXP();
 }
 
-// <EXP>—[+|-]T|EXP' MOP T
-void Parser::EXP(){
+// <EXP>—[+|-]T EXP'
+string Parser::EXP(){
     token = lexer.getNextToken();
-    if(token.type != "+" && token.type != "-"){
-        cerr<<"Wrong expression: start without +/-"<<endl;
-        exit(1);
+    if(token.type != "+" || token.type == "-"){
+        token = lexer.getNextToken();
     }
     T();
     _EXP();
+    return "";
 }
 
-// EXP'->MOP T EXP' | <NULL>
+// EXP'->AOP T EXP' | <NULL>
 void Parser::_EXP(){
     token = lexer.getPeekChar();
     if(";"==token.type){
         return;
     }
-    MOP();
+    AOP();
     T();
     _EXP();
 }
 
 // T—>FT'
-void Parser::T(){
-    F();
-    _T();
+string Parser::T(){
+    string value = F();
+    int index = emit("", value, "", "");// 第一个Factor的代码生成，后期会改
+    string str = _T();
+    if(str == "<null>"){
+        return value; // 先前emit的代码被递归函数删除
+    }
+    else {
+        return str; // 此表达式最终结果的临时存储（T形式）
+    }
 }
 
 // T'->MOP F T' | <NULL>
-void Parser::_T(){
+string Parser::_T(){
     token = lexer.getPeekChar();
+    int pre = getPreCodePtr();
     if(";" == token.type){
-        return;
+        string ret = MidCode[pre].arg1; // 取最后一个的结果
+        deletePreCode();
+        return ret;
     }
-    MOP();
-    F();
-    _T();
+    string opt = MOP();
+    string second_factor = F();
+    string this_result = getTemp();
+
+    MidCode[pre].op = opt;
+    MidCode[pre].arg2 = second_factor;
+    MidCode[pre].result = this_result;
+    emit("",this_result,"","");
+    return _T();
 }
 
 // F—>IDFS|UINT|(EXP)
-void Parser::F(){
+string Parser::F(){
     token = lexer.getNextToken();
     if("ID" == token.type){
-        return;
+        return token.value;
     }
     else if("INT" == token.type){
-        return;
+        return token.value;
     }
     else if("(" == token.type){
-        EXP();
+        string str = EXP();
         token = lexer.getNextToken();
-        if("(" != token.type){
+        if(")" != token.type){
             cerr<<"curves unmatched"<<endl;
+            exit(1);
         }
+        return str; //返回表达式的值（T的形式）
     }
     else{
         cerr<<"Wrong Factor"<<endl;
+        exit(1);
     }
+    return "";
 }
 
 // AOP—>+|-
-void Parser::AOP(){
+string Parser::AOP(){
     token = lexer.getNextToken();
     if("+"!=token.type && "-"!=token.type){
         cerr<<"wrong add and substract operator"<<endl;
         exit(1);
     }
+    return token.type;
 }
 
 // MOP->*|/
-void Parser::MOP(){
+string Parser::MOP(){
     token = lexer.getNextToken();
     if("*"!=token.type && "/"!=token.type){
         cerr<<"wrong add and substract operator"<<endl;
         exit(1);
     }
+    return token.type;
 }
 
 void Parser::CONDST(bool firstCheck=false){
@@ -374,14 +439,18 @@ void Parser::COND(){
     EXP();
     ROP();
     EXP();
+    return;// 返回待回填的索引
 }
-void Parser::ROP(){
+string Parser::ROP(){
     token = lexer.getNextToken();
     if("ROP"!=token.type){
         cerr<<"error condition operator"<<endl;
         exit(1);
     }
+    return token.value;
 }
+
+// NULLST-> 空
 void Parser::NULLST(bool firstCheck=false)
 {
     if(firstCheck==false){
