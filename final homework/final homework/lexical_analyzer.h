@@ -15,6 +15,7 @@ struct Token {
     }
     Token() {
 
+
     }
 };
 class Lexer {
@@ -22,13 +23,13 @@ public:
     Lexer(const std::string& filename);
     ~Lexer();
 
-    //生成所有的token
+    //鐢熸垚鎵�鏈夌殑token
     list<Token> tokens;
-    // 获取当前的token
+    // 鑾峰彇褰撳墠鐨則oken
     Token getToken();
-    // 获得到下一个token
+    // 鑾峰緱鍒颁笅涓�涓猼oken
     Token nextToken();
-    // 查看下一个token
+    // 鏌ョ湅涓嬩竴涓猼oken
     Token getNext();
 
 private:
