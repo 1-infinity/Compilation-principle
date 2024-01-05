@@ -200,6 +200,10 @@ void Parser::SP() {
     }
     // sentence
     ST();
+    if (token.type != "$") {
+        cout << "redundant information at the end of the program" << endl;
+        exit(1);
+    }
 }
 
 // C-> 'CONST'CDF{,CDF};
@@ -218,8 +222,10 @@ void Parser::C() {
                 token = lexer.getNext();
                 break;
             }
-            else
-                cout << "Unrecoginzed symbol when initilizing const values" << endl;
+            else {
+                cout << "C: Unrecoginzed symbol when initilizing const values" << endl;
+                exit(1);
+            }
         } while (true);
     }
 }
@@ -293,7 +299,8 @@ void Parser::V() {
             break;
         }
         else {
-            cerr << "Unrecoginzed symbol when initilizing vars" << endl;
+            cerr << "V: Unrecoginzed symbol when initilizing vars, check whether \',\' or \';\' is missing" << endl;
+            exit(1);
         }
     }
 }
@@ -326,7 +333,7 @@ void Parser::ST() {
     else if ("BEGIN" == token.type) {
         CPLXST();
     }
-    else if ("END" == token.type) {
+    else if ("END" == token.type || token.type == "$"||token.type == ";") {
         NULLST();
     }
     else if (token.type == "ID") {
@@ -349,17 +356,22 @@ void Parser::CPLXST() {
     while (true) {
         ST();
         if (";" == token.type) {
+            //if (lexer.nextToken().type == "END") {
+            //    cerr << "CPLXST: excessive \';\' before END" << endl;
+            //    exit(1);
+            //}
             token = lexer.getNext();
             continue;
         }
         else if ("END" == token.type) {
+            token = lexer.getNext();
             break;
         }
         else {
             cerr << "sentence ends with wrong codes" << endl;
             exit(1);
         }
-    }
+    }   
 }
 
 // ASNST—>IDFS:=EXP
@@ -367,7 +379,7 @@ void Parser::ASNST(){
     string result = IDFS();
     var existed = findIDFS(result);
     if(existed.name == "<null>"){
-        cerr<<"ASNST: unstated identifier"<<endl;
+        cerr << "ASNST: unstated identifier " << "\'" << result << "\'" << endl;
         exit(1);
     }
     else if(existed.type == VarType::Const) {
@@ -419,7 +431,7 @@ string Parser::EXP() {
 
 // EXP'->AOP T EXP' | <NULL>
 string Parser::_EXP(const string& arg1) {
-    if (token.type == "ROP" || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END") {
+    if (token.type == "ROP" || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END" || token.type == "$") {
         return arg1;
     }
     string opt = AOP();
@@ -439,7 +451,7 @@ string Parser::T(){
 // T'->MOP F T' | <NULL>
 string Parser::_T(const string& arg1) {
     // 空字
-    if (token.type == "AOP" || token.type == "ROP" || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END") {
+    if (token.type == "AOP" || token.type == "ROP" || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END" || token.type == "$") {
         return arg1;
     }
 
@@ -459,7 +471,7 @@ string Parser::F() {
         result = IDFS();
         var existed = findIDFS(result);
         if(existed.name == "<null>"){
-            cerr<<"ASNST: unstated identifier"<<endl;
+            cerr << "ASNST: unstated identifier " << "\'" << result << "\'" << endl;
             exit(1);
         }
     }
@@ -507,8 +519,13 @@ string Parser::MOP() {
         token = lexer.getNext();
         return result;
     }
+    // else if token.type == 保留字 返回错误信息
+    else if (token.type == "PROGRAM" || token.type == "BEGIN" || token.type == "END" || token.type == "CONST" || token.type == "VAR" || token.type == "WHILE" || token.type == "DO" || token.type == "IF" || token.type == "THEN") {
+        cerr << "Unexpected reserved identifier: " << token.type << endl;
+        exit(1);
+    }
     else {
-        cerr << "wrong add and substract operator" << endl;
+        cerr << "wrong multiplication and Division operator" << endl;
         exit(1);
     }
     return "";

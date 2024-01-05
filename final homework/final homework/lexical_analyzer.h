@@ -32,6 +32,9 @@ public:
     Token getNext();
 
 private:
+    // 判断文件是否到末尾
+    bool flag;
+
     string name;
     ifstream file;
     char currentChar;
