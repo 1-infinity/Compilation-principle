@@ -150,7 +150,7 @@ void Parser::PHEAD() {
         token = lexer.getNext();
     }
     else {
-        cerr << "Program doesn't start with \'PROGRAM\'!" << endl;
+        cerr << "PHEAD: Program doesn't start with \'PROGRAM\'!" << endl;
         exit(1);
     }
     IDFS();
@@ -199,7 +199,7 @@ void Parser::CDF() {
         token = lexer.getNext();
     }
     else {
-        cerr << "Tempt to initilizing const values with error identifier" << endl;
+        cerr << "CDF: Tempt to initilizing const values with error identifier" << endl;
         exit(1);
     }
     UINT();
@@ -212,7 +212,7 @@ void Parser::UINT() {
         token = lexer.getNext();
     }
     else{
-        cerr << "Using error type" << endl;
+        cerr << "UINT: Using error type" << endl;
         exit(1);
     }
 }
@@ -224,7 +224,7 @@ void Parser::V() {
         token = lexer.getNext();
     }
     else {
-        cerr << "\'VAR\' symbol missing" << endl;
+        cerr << "V: \'VAR\' symbol missing" << endl;
         exit(1);
     }
 
@@ -240,7 +240,7 @@ void Parser::V() {
             break;
         }
         else {
-            cerr << "Unrecoginzed symbol when initilizing vars" << endl;
+            cerr << "V: Unrecoginzed symbol when initilizing vars" << endl;
         }
     }
 }
@@ -253,7 +253,7 @@ void Parser::IDFS() {
         return;
     }
     else {
-        cerr << "Identifier format wrong" << endl;
+        cerr << "IDFS: Identifier format wrong" << endl;
         exit(1);
     }
 }
@@ -278,7 +278,7 @@ void Parser::ST() {
         ASNST();
     }
     else {
-        cerr << "ST error" << endl;
+        cerr << "ST: ST error" << endl;
     }
 }
 
@@ -288,7 +288,7 @@ void Parser::CPLXST() {
         token = lexer.getNext();
     }
     else {
-        cerr << "Missing \'BEGIN\' with complex sentence" << endl;
+        cerr << "COLXST: Missing \'BEGIN\' with complex sentence" << endl;
         exit(1);
     }
     while (true) {
@@ -301,7 +301,7 @@ void Parser::CPLXST() {
             break;
         }
         else {
-            cerr << "sentence ends with wrong codes" << endl;
+            cerr << "CPLXST: Sentence ends with wrong codes" << endl;
             exit(1);
         }
     }
@@ -314,7 +314,7 @@ void Parser::ASNST(){
         token = lexer.getNext();
     }
     else {
-        cerr<<"Assignment sentence wrong: not using \':=\'"<<endl;
+        cerr<<"ASNST: Assignment sentence wrong: not using \':=\'"<<endl;
         exit(1);
     }
     EXP();
@@ -331,7 +331,7 @@ string Parser::EXP() {
         T();
     }
     else {
-        cerr << "Wrong expression" << endl;
+        cerr << "EXP: Wrong expression" << endl;
         exit(1);
     }
     _EXP();
@@ -399,12 +399,12 @@ string Parser::F() {
             token = lexer.getNext();
         }
         else {
-            cerr << "curves unmatched" << endl;
+            cerr << "F: curves unmatched" << endl;
             exit(1);
         }
     }
     else {
-        cerr << "Wrong Factor" << endl;
+        cerr << "F: Wrong Factor" << endl;
         exit(1);
     }
     return "";
@@ -418,7 +418,7 @@ string Parser::AOP() {
         return token.value;
     }
     else {
-        cerr << "wrong add and substract operator" << endl;
+        cerr << "AOP: wrong add and substract operator" << endl;
         exit(1);
     }
     return "";
@@ -432,7 +432,7 @@ string Parser::MOP() {
         return token.value;
     }
     else {
-        cerr << "wrong add and substract operator" << endl;
+        cerr << "MOP: wrong add and substract operator" << endl;
         exit(1);
     }
     return "";
@@ -449,12 +449,12 @@ void Parser::CONDST() {
             ST();
         }
         else {
-            cerr << "error condition sentence" << endl;
+            cerr << "CONDST: error condition sentence" << endl;
             exit(1);
         }
     }
     else {
-        cerr << "error condition sentence" << endl;
+        cerr << "CONDST: error condition sentence" << endl;
         exit(1);
     }
 }
@@ -468,13 +468,13 @@ void Parser::LOOP() {
             token = lexer.getNext();
         }
         else {
-            cerr << "error in loop:lose DO" << endl;
+            cerr << "LOOP: error in loop:lose DO" << endl;
             exit(1);
         }
         ST();
     }
     else {
-        cerr << "error in loop:lose WHILE" << endl;
+        cerr << "LOOP: error in loop:lose WHILE" << endl;
         exit(1);
     }
 }
@@ -492,7 +492,7 @@ string Parser::ROP() {
         token = lexer.getNext();
     } 
     else {
-        cerr << "error condition operator" << endl;
+        cerr << "ROP: error condition operator" << endl;
         exit(1);
     }
     return token.value;
