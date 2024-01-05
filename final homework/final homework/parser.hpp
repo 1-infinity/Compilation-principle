@@ -365,6 +365,7 @@ string Parser::T(){
 // T'->MOP F T' | <NULL>
 string Parser::_T() {
     // 空字
+    int pre = getPreCodePtr();
     if ((token.type == "ROP" && token.value == "+") || (token.type == "ROP" && token.value == "-") || (token.type == "ROP" && token.value == "=") || (token.type == "ROP" && token.value == "<>") || (token.type == "ROP" && token.value == "<") || (token.type == "ROP" && token.value == "<=") || (token.type == "ROP" && token.value == ">") || (token.type == "ROP" && token.value == ">=") || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END") {
         string ret = MidCode[pre].arg1; // 鍙栨渶鍚庝竴涓殑缁撴灉
         deletePreCode();
