@@ -9,8 +9,8 @@ using namespace std;
 int main() {
 	string filename;
 	string line;
+	Parser parser("test.txt");
+	vector<Code> code = parser.ParserAndCodeGenerator();
 
-	Parser parser("F:\\2152592\\homework\\3-1\\编译原理\\期末项目\\Compilation-principle\\test.txt");
-	parser.ParserAndCodeGenerator();
 	//close file
 }

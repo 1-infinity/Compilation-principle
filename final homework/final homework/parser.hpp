@@ -43,16 +43,17 @@ typedef struct {
     string result;
 } Code;
 
+enum class VarType{Var, Const};
+
 typedef struct {
     string name;
-    string prop;
-    string Register;
+    VarType type;
 } var;
 
 class Parser {
 private:
     vector<Code> MidCode;
-    var Vars[100];
+    vector<var> VarList;
     // 起始地址
     int init;
     // MidCode指针
@@ -65,14 +66,14 @@ private:
     void SP();
     void C();// 如果看了FISRT，则第一个token已经被读取，此函数不再读取
     void CDF();
-    void UINT();
+    string UINT();
     void V();// 同上
-    void IDFS();
+    string IDFS();
     void CPLXST();
     void ST();
     void ASNST();
     string EXP();
-    void _EXP();// 消除左递归
+    string _EXP();// 消除左递归
     string T();
     string _T();// 消除左递归
     string F();
@@ -80,7 +81,7 @@ private:
     string MOP();
     void CONDST();
     void LOOP();
-    void COND();
+    int COND();
     string ROP();
     void NULLST();
     void M(); // 空，打断
@@ -89,6 +90,8 @@ private:
     int emit(string op, string arg1, string arg2, string result);// 璐熻矗鍐欏叆涓�鏉′腑闂翠唬鐮侊紝杩斿洖璇ヤ唬鐮佺储寮�
     int getPreCodePtr();
     int deletePreCode();
+    bool existedIDFS(string name);
+    var findIDFS(string name);
 public:
     Parser(const string& filename);
     vector<Code> ParserAndCodeGenerator() {
@@ -128,6 +131,7 @@ int Parser::deletePreCode()
     MidCode.pop_back();
     init--;
     ptr--;
+    return ptr;
 }
 
 string Parser::getTemp()
@@ -136,6 +140,28 @@ string Parser::getTemp()
     temp.append("T");
     temp.append(std::to_string(++temp_number));
     return temp;
+}
+
+bool Parser::existedIDFS(string name)
+{
+    for(int i=0;i<VarList.size();i++){
+        if(name == VarList[i].name){
+            return true;
+        }
+    }
+    return false;
+}
+
+var Parser::findIDFS(string name)
+{
+    for(unsigned int index = 0; index < VarList.size(); index++) {
+        if(VarList[index].name == name) {
+            return VarList[index];
+        }
+    }
+    var nullobject;
+    nullobject.name = "<null>";
+    return nullobject;
 }
 
 // P->PHEAD SP
@@ -194,7 +220,11 @@ void Parser::C() {
 
 // CDF->IDFS:=UINT
 void Parser::CDF() {
-    IDFS();
+    string idfs = IDFS();
+    if(existedIDFS(idfs)){
+        cerr<<"CDF: Depulicated Const Statement"<<endl;
+        exit(1);
+    }
     token = lexer.getToken();
     if (token.type == ":=") {
         token = lexer.getNext();
@@ -203,11 +233,16 @@ void Parser::CDF() {
         cerr << "Tempt to initilizing const values with error identifier" << endl;
         exit(1);
     }
-    UINT();
+    string number = UINT();
+    emit("j" + token.value, number, "-", idfs);
+    var new_var;
+    new_var.name = idfs;
+    new_var.type = VarType::Const;
+    VarList.push_back(new_var);
 }
 
 // UINT->N{N}
-void Parser::UINT() {
+string Parser::UINT() {
     token = lexer.getToken();
     if (token.type == "INT") {
         token = lexer.getNext();
@@ -216,6 +251,7 @@ void Parser::UINT() {
         cerr << "Using error type" << endl;
         exit(1);
     }
+    return token.value;
 }
 
 // V->'VAR'IDFS{,IDFS};
@@ -230,7 +266,15 @@ void Parser::V() {
     }
 
     while (true) {
-        IDFS();
+        string idfs = IDFS();
+        if(existedIDFS(idfs)){
+            cerr<<"CDF: Depulicated Const Statement"<<endl;
+            exit(1);
+        }
+        var new_var;
+        new_var.name = idfs;
+        new_var.type = VarType::Var;
+        VarList.push_back(new_var);
         token = lexer.getToken();
         if (token.type == ",") {
             token = lexer.getNext();
@@ -247,16 +291,17 @@ void Parser::V() {
 }
 
 // IDFS —> L{L|D}
-void Parser::IDFS() {
+string Parser::IDFS() {
     token = lexer.getToken();
     if (token.type == "ID") {
+        string result = token.value;
         token = lexer.getNext();
-        return;
     }
     else {
         cerr << "Identifier format wrong" << endl;
         exit(1);
     }
+    return token.value;
 }
 
 
@@ -309,58 +354,79 @@ void Parser::CPLXST() {
 }
 
 // ASNST—>IDFS:=EXP
-void Parser::ASNST() {
-    IDFS();
+void Parser::ASNST(){
+    string result = IDFS();
+    var existed = findIDFS(result);
+    if(existed.name == "<null>"){
+        cerr<<"ASNST: unstated identifier"<<endl;
+        exit(1);
+    }
+    else if(existed.type == VarType::Const) {
+        cerr<<"ASNST: const identifier cannot be assigned."<<endl;
+        exit(1);
+    }
+    string opt = "";
     if (token.type == ":=") {
+        opt = token.value;
         token = lexer.getNext();
     }
     else {
         cerr << "Assignment sentence wrong: not using \':=\'" << endl;
         exit(1);
     }
-    EXP();
+    string arg1 = EXP();
+    emit(opt,arg1,"-",result);
+    return;
 }
 
 
 // <EXP>—[+|-]T EXP'
 string Parser::EXP() {
-    if (token.type == "AOP" && (token.value == "-" || token.value == "+")) {
+    string T_part;
+    if (token.type == "AOP" && token.value == "+") {
         token = lexer.getNext();
-        T();
+        T_part = T();
+    }
+    else if(token.type == "AOP" && token.value == "-") {
+        token = lexer.getNext();
+        T_part = getTemp();
+        emit("uminus", T(), "-", T_part); // return register name
     }
     else if (token.type == "ID" || token.type == "INT" || token.type == "(") {
-        T();
+        T_part = T();
     }
     else {
         cerr << "Wrong expression" << endl;
         exit(1);
     }
-    _EXP();
-    return "";
+    emit("-",T_part,"-","-");
+    return _EXP();
 }
 
 // EXP'->AOP T EXP' | <NULL>
-void Parser::_EXP() {
+string Parser::_EXP() {
+    int pre = getPreCodePtr();
     if (token.type == "ROP" || token.type == ";" || token.type == ")" || token.type == "THEN" || token.type == "DO" || token.type == "END") {
-        return;
+        string ret = MidCode[pre].arg1;
+        deletePreCode();
+        return ret;
     }
-    AOP();
-    T();
-    _EXP();
+    string opt = AOP();
+    string value = T();
+    string result = getTemp();
+
+    MidCode[pre].op = opt;
+    MidCode[pre].arg2 = value;
+    MidCode[pre].result = result;
+    emit("",result,"","");
+    return _EXP();
 }
 
-
 // T->FT'
-string Parser::T() {
+string Parser::T(){
     string value = F();
     int index = emit("", value, "", "");// 绗竴涓狥actor鐨勪唬鐮佺敓鎴愶紝鍚庢湡浼氭敼
-    string str = _T();
-    if (str == "<null>") {
-        return value; // 鍏堝墠emit鐨勪唬鐮佽閫掑綊鍑芥暟鍒犻櫎
-    }
-    else {
-        return str; // 姝よ〃杈惧紡鏈�缁堢粨鏋滅殑涓存椂瀛樺偍锛圱褰㈠紡锛�
-    }
+    return _T();
 }
 
 // T'->MOP F T' | <NULL>
@@ -387,15 +453,21 @@ string Parser::_T() {
 // F—>IDFS|UINT|(EXP)
 string Parser::F() {
     token = lexer.getToken();
+    string result;
     if ("ID" == token.type) {
-        IDFS();
+        result = IDFS();
+        var existed = findIDFS(result);
+        if(existed.name == "<null>"){
+            cerr<<"ASNST: unstated identifier"<<endl;
+            exit(1);
+        }
     }
     else if ("INT" == token.type) {
-        UINT();
+        result = UINT();
     }
     else if ("(" == token.type) {
         token = lexer.getNext();
-        EXP();
+        result = EXP();
         if (")" == token.type) {
             token = lexer.getNext();
         }
@@ -408,7 +480,7 @@ string Parser::F() {
         cerr << "Wrong Factor" << endl;
         exit(1);
     }
-    return "";
+    return result;
 }
 
 // AOP—>+|-
@@ -416,13 +488,12 @@ string Parser::AOP() {
     token = lexer.getToken();
     if (token.type == "AOP") {
         token = lexer.getNext();
-        return token.value;
     }
     else {
         cerr << "wrong add and substract operator" << endl;
         exit(1);
     }
-    return "";
+    return token.value;
 }
 
 // MOP->*|/
@@ -430,13 +501,12 @@ string Parser::MOP() {
     token = lexer.getToken();
     if (token.type == "MOP") {
         token = lexer.getNext();
-        return token.value;
     }
     else {
         cerr << "wrong add and substract operator" << endl;
         exit(1);
     }
-    return "";
+    return token.value;
 }
 
 // CONDST->IF COND THEN ST
@@ -444,10 +514,12 @@ void Parser::CONDST() {
     token = lexer.getToken();
     if ("IF" == token.type) {
         token = lexer.getNext();
-        COND();
+        int filling_in = COND();
         if (token.type == "THEN") {
             token = lexer.getNext();
             ST();
+            // get address to be filled into that code
+            MidCode[filling_in].result = to_string(init);
         }
         else {
             cerr << "error condition sentence" << endl;
@@ -464,7 +536,8 @@ void Parser::CONDST() {
 void Parser::LOOP() {
     if (token.type == "WHILE") {
         token = lexer.getNext();
-        COND();
+        int start_address = init;
+        int filling_in = COND();
         if (token.type == "DO") {
             token = lexer.getNext();
         }
@@ -473,6 +546,8 @@ void Parser::LOOP() {
             exit(1);
         }
         ST();
+        emit("j","-","-",to_string(start_address));
+        MidCode[filling_in].result = to_string(init);
     }
     else {
         cerr << "error in loop:lose WHILE" << endl;
@@ -481,10 +556,13 @@ void Parser::LOOP() {
 }
 
 // COND->EXP ROP EXP
-void Parser::COND() {
-    EXP();
-    ROP();
-    EXP();
+int Parser::COND() {
+    string exp1 = EXP();
+    string rop = ROP();
+    string exp2 = EXP();
+    emit("j"+rop, exp1, exp2, to_string(init+2));
+    emit("j","-","-","-"); // wait for being filled
+    return init - 1;
 }
 
 // ROP-> = | <> | < | <= | > | >=
