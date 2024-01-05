@@ -11,5 +11,6 @@ int main() {
 	string line;
 	Parser parser("test.txt");
 	vector<Code> code = parser.ParserAndCodeGenerator();
+
 	//close file
 }

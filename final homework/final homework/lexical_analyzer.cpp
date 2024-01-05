@@ -3,7 +3,7 @@
 #include<iostream>
 #include <algorithm>
 
-// æ„é€ å‡½æ•°
+// ¹¹Ôìº¯Êı
 Lexer::Lexer(const std::string& filename) : currentChar(' ') {
     file.open(filename, ios::in);
     if (!file.is_open()) {
@@ -20,32 +20,40 @@ Lexer::Lexer(const std::string& filename) : currentChar(' ') {
     keyWord.push_back("IF");
     keyWord.push_back("THEN");
 
-    opt.push_back("+");
-    opt.push_back("-");
-    opt.push_back("*");
-    opt.push_back("/");
-    opt.push_back(":=");
-    opt.push_back("=");
-    opt.push_back("<>");
-    opt.push_back("<");
-    opt.push_back("<=");
-    opt.push_back(">");
-    opt.push_back(">=");
-    opt.push_back(":");
+    Aopt.push_back("+");
+    Aopt.push_back("-");
+    Mopt.push_back("*");
+    Mopt.push_back("/");
+    Ropt.push_back(":=");
+    Ropt.push_back("=");
+    Ropt.push_back("<>");
+    Ropt.push_back("<");
+    Ropt.push_back("<=");
+    Ropt.push_back(">");
+    Ropt.push_back(">=");
+    Ropt.push_back(":");
 
     boundWord.push_back('(');
     boundWord.push_back(')');
     boundWord.push_back(';');
     boundWord.push_back(',');
 
-
+    generateTokens();
+    it = tokens.begin();
 }
 
-Lexer::~Lexer(){
+Lexer::~Lexer() {
     file.close();
 }
 
-// è¯»å–ä¸‹ä¸€ä¸ªå­—ç¬¦
+Token Lexer::getPeekChar() {
+    string type;
+    char str[2] = { file.peek(),0 };
+    type.append(str);
+    return Token(type, "-");
+}
+
+// ¶ÁÈ¡ÏÂÒ»¸ö×Ö·û
 bool Lexer::readNextChar() {
     if (file.get(currentChar)) {
         return true;
@@ -55,7 +63,7 @@ bool Lexer::readNextChar() {
     }
 }
 
-// è·³è¿‡ç©ºç™½å­—ç¬¦
+// Ìø¹ı¿Õ°××Ö·û
 void Lexer::skipWhitespace() {
     while (isspace(currentChar) && readNextChar()) {    }
 }
@@ -69,10 +77,28 @@ bool Lexer::isKeyword(const string& s) {
     return false;
 }
 
-bool Lexer::isOpt(const string& s) {
-    vector<string>::iterator result = find(opt.begin(), opt.end(), s);
+bool Lexer::isAopt(const string& s) {
+    vector<string>::iterator result = find(Aopt.begin(), Aopt.end(), s);
 
-    if (result != opt.end()) {
+    if (result != Aopt.end()) {
+        return true;
+    }
+    return false;
+}
+
+bool Lexer::isMopt(const string& s) {
+    vector<string>::iterator result = find(Mopt.begin(), Mopt.end(), s);
+
+    if (result != Mopt.end()) {
+        return true;
+    }
+    return false;
+}
+
+bool Lexer::isRopt(const string& s) {
+    vector<string>::iterator result = find(Ropt.begin(), Ropt.end(), s);
+
+    if (result != Ropt.end()) {
         return true;
     }
     return false;
@@ -87,7 +113,7 @@ bool Lexer::isBound(const char s) {
     return false;
 }
 
-// æ‰«ææ ‡è¯†ç¬¦
+// É¨Ãè±êÊ¶·û
 Token Lexer::scanIdentifier() {
     string identifier;
     bool flag = true;
@@ -96,7 +122,7 @@ Token Lexer::scanIdentifier() {
         flag = readNextChar();
     }
 
-    // æ£€æŸ¥æ˜¯å¦æ˜¯å…³é”®å­—
+    // ¼ì²éÊÇ·ñÊÇ¹Ø¼ü×Ö
     if (isKeyword(identifier)) {
         return Token(identifier, "-");
     }
@@ -105,7 +131,7 @@ Token Lexer::scanIdentifier() {
     }
 }
 
-// æ‰«ææ•°å­—
+// É¨ÃèÊı×Ö
 Token Lexer::scanNumber() {
     string number;
     while (isdigit(currentChar)) {
@@ -115,21 +141,37 @@ Token Lexer::scanNumber() {
     return Token("INT", number);
 }
 
-// æ‰«æ
-Token Lexer::scanOpt() {
+// É¨Ãè¼Ó·¨ÔËËã·û
+Token Lexer::scanAopt() {
+    string symbol(1, currentChar);
+    readNextChar();
+    return Token("AOP", symbol);
+}
+// É¨Ãè³Ë·¨ÔËËã·û
+Token Lexer::scanMopt() {
+    string symbol(1, currentChar);
+    readNextChar();
+    return Token("MOP", symbol);
+}
+// É¨ÃèÂß¼­ÔËËã·û
+Token Lexer::scanRopt() {
     string symbol(1, currentChar);
     readNextChar();
 
-    // æ£€æŸ¥æ˜¯å¦æ˜¯å¤šå­—ç¬¦è¿ç®—ç¬¦
+    // ¼ì²éÊÇ·ñÊÇ¶à×Ö·ûÔËËã·û
     if (currentChar == '=' || currentChar == '>') {
         symbol += currentChar;
+        if (currentChar == '=') {
+            readNextChar();
+            return Token(symbol, "-");
+        }
         readNextChar();
     }
 
     return Token("ROP", symbol);
 }
 
-// æ‰«æç•Œç¬¦
+// É¨Ãè½ç·û
 Token Lexer::scanBound() {
     string symbol(1, currentChar);
     readNextChar();
@@ -137,31 +179,33 @@ Token Lexer::scanBound() {
     return Token(symbol, "-");
 }
 
-// è·å–ä¸‹ä¸€ä¸ªToken
+// »ñÈ¡ÏÂÒ»¸öToken
 Token Lexer::getNextToken() {
     skipWhitespace();
 
     if (isalpha(currentChar)) {
-        // std::cout<<"isAlpha"<<endl;
         return scanIdentifier();
     }
     else if (isdigit(currentChar)) {
-        // std::cout<<"isDigit"<<endl;
         return scanNumber();
     }
     else if (isBound(currentChar)) {
-        // std::cout<<"isChar"<<endl;
         return scanBound();
     }
-    else if (isOpt(string(1, currentChar))) {
-        // std::cout<<"isOpt"<<endl;
-        return scanOpt();
+    else if (isAopt(string(1, currentChar))) {
+        return scanAopt();
+    }
+    else if (isMopt(string(1, currentChar))) {
+        return scanMopt();
+    }
+    else if (isRopt(string(1, currentChar))) {
+        return scanRopt();
     }
     else if (file.eof()) {
         return Token("ENDFILE", "-");
     }
     else {
-        // æ— æ³•è¯†åˆ«çš„å­—ç¬¦
+        // ÎŞ·¨Ê¶±ğµÄ×Ö·û
         cerr << "error token: " << currentChar << endl;
         exit(1);
     }
