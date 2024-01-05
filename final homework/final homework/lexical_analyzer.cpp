@@ -10,6 +10,7 @@ Lexer::Lexer(const std::string& filename) : currentChar(' ') {
         std::cerr << "Cannot open file! " << filename << std::endl;
         exit(1);
     }
+    flag = false;
     keyWord.push_back("PROGRAM");
     keyWord.push_back("BEGIN");
     keyWord.push_back("END");
@@ -59,8 +60,9 @@ bool Lexer::readNextChar() {
         return true;
     }
     else {
-        return false;
+        currentChar = '$';
     }
+    return true;
 }
 
 // 跳过空白字符
@@ -181,6 +183,7 @@ Token Lexer::scanBound() {
 
 // 获取下一个Token
 Token Lexer::getNextToken() {
+
     skipWhitespace();
 
     if (isalpha(currentChar)) {
@@ -201,8 +204,8 @@ Token Lexer::getNextToken() {
     else if (isRopt(string(1, currentChar))) {
         return scanRopt();
     }
-    else if (file.eof()) {
-        return Token("ENDFILE", "-");
+    else if (currentChar == '$') {
+        return Token("$", "-");
     }
     else {
         // 无法识别的字符
@@ -216,7 +219,7 @@ list<Token> Lexer::generateTokens() {
     do {
         token = getNextToken();
         tokens.push_back(token);
-    } while (token.type != "END");
+    } while (token.type != "$");
     return tokens;
 }
 
