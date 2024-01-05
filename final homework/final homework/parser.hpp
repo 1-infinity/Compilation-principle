@@ -150,7 +150,7 @@ void Parser::PHEAD() {
         token = lexer.getNext();
     }
     else {
-        cerr << "Program doesn't start with \'PROGRAM\'!" << endl;
+        cerr << "PHEAD: Program doesn't start with \'PROGRAM\'!" << endl;
         exit(1);
     }
     IDFS();
