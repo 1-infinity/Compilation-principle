@@ -9,9 +9,11 @@ using namespace std;
 struct Token {
     string type;
     string value;
-    Token(string Type, string Value) {
+    int line;
+    Token(string Type, string Value,int Line) {
         type = Type;
         value = Value;
+        line = Line;
     }
     Token() {
 
@@ -21,31 +23,21 @@ class Lexer {
 public:
     Lexer(const std::string& filename);
     ~Lexer();
-
-    //生成所有的token
-    list<Token> tokens;
-    // 获取当前的token
-    Token getToken();
-    // 获得到下一个token
-    Token nextToken();
-    // 查看下一个token
-    Token getNext();
+    Token getNextToken();
 
 private:
-    // 判断文件是否到末尾
-    bool flag;
 
     string name;
     ifstream file;
     char currentChar;
-    Token currentToken;
+    // 当前所在行
+    int line;
+
     vector<string> keyWord;
     vector<string> Aopt;
     vector<string> Mopt;
     vector<string> Ropt;
     vector<char> boundWord;
-
-    list<Token>::iterator it;
 
     bool readNextChar();
     void skipWhitespace();
@@ -63,10 +55,7 @@ private:
     Token scanAopt();
     Token scanMopt();
     Token scanRopt();
-
     Token scanBound();
-    list<Token> generateTokens();
 
-    Token getNextToken();
     Token getPeekChar();
 };
