@@ -160,12 +160,12 @@ void Parser::P() {
 
 // PHEAD -> 'PROGRAM' IDFS
 void Parser::PHEAD() {
-    token = lexer.getToken();
+    token = lexer.getNextToken();
     if (token.type == "PROGRAM") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
     }
     else {
-        cerr << "PHEAD: Program doesn't start with \'PROGRAM\'!" << endl;
+        cerr << "line " << token.line << " " << "PHEAD: Program doesn't start with \'PROGRAM\'!" << endl;
         exit(1);
     }
     IDFS();
@@ -173,7 +173,6 @@ void Parser::PHEAD() {
 
 // SP-> [C][V]ST
 void Parser::SP() {
-    token = lexer.getToken();
     if (token.type == "CONST") {
         C();
     }
@@ -190,22 +189,20 @@ void Parser::SP() {
 
 // C-> 'CONST'CDF{,CDF};
 void Parser::C() {
-    token = lexer.getToken();
     if (token.type == "CONST") {
-        lexer.getNext();
+        token = lexer.getNextToken();
         do {
             CDF();
-            token = lexer.getToken();
             if (token.type == ",") {
-                token = lexer.getNext();
+                token = lexer.getNextToken();
                 continue;
             }
             else if (token.type == ";") {
-                token = lexer.getNext();
+                token = lexer.getNextToken();
                 break;
             }
             else {
-                cout << "C: Unrecoginzed symbol when initilizing const values" << endl;
+                cerr << "line " << token.line << " " << "C: Unrecoginzed symbol when initilizing const values" << endl;
                 exit(1);
             }
         } while (true);
@@ -219,12 +216,11 @@ void Parser::CDF() {
         cerr<<"CDF: Depulicated Const Statement"<<endl;
         exit(1);
     }
-    token = lexer.getToken();
     if (token.type == ":=") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
     }
     else {
-        cerr << "CDF: Tempt to initilizing const values with error identifier, please use \':=\'" << endl;
+        cerr << "line " << token.line << " " << "CDF: Tempt to initilizing const values with error identifier" << endl;
         exit(1);
     }
     string number = UINT();
@@ -237,14 +233,13 @@ void Parser::CDF() {
 
 // UINT->N{N}
 string Parser::UINT() {
-    token = lexer.getToken();
     if (token.type == "INT") {
         string result = token.value;
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         return result;
     }
     else {
-        cerr << "UINT: Using error type, please use INT" << endl;
+        cerr <<"line "<<token.line<<" " << "UINT: Using error type" << endl;
         exit(1);
     }
     return "";
@@ -252,36 +247,34 @@ string Parser::UINT() {
 
 // V->'VAR'IDFS{,IDFS};
 void Parser::V() {
-    token = lexer.getToken();
     if (token.type == "VAR") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
     }
     else {
-        cerr << "V: \'VAR\' symbol missing" << endl;
+        cerr << "line " << token.line << " " << "V: \'VAR\' symbol missing" << endl;
         exit(1);
     }
 
     while (true) {
         string idfs = IDFS();
         if(existedIDFS(idfs)){
-            cerr<<"CDF: Depulicated Variable Statement"<<endl;
+            cerr << "line " << token.line << " " << "CDF: Depulicated Variable Statement"<<endl;
             exit(1);
         }
         var new_var;
         new_var.name = idfs;
         new_var.type = VarType::Var;
         VarList.push_back(new_var);
-        token = lexer.getToken();
         if (token.type == ",") {
-            token = lexer.getNext();
+            token = lexer.getNextToken();
             continue;
         }
         else if (token.type == ";") {
-            token = lexer.getNext();
+            token = lexer.getNextToken();
             break;
         }
         else {
-            cerr << "V: Unrecoginzed symbol when initilizing vars, check whether \',\' or \';\' is missing" << endl;
+            cerr << "line " << token.line << " " << "V: Unrecoginzed symbol when initilizing vars, check whether \',\' or \';\' is missing" << endl;
             exit(1);
         }
     }
@@ -289,14 +282,13 @@ void Parser::V() {
 
 // IDFS —> L{L|D}
 string Parser::IDFS() {
-    token = lexer.getToken();
     if (token.type == "ID") {
         string result = token.value;
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         return result;
     }
     else {
-        cerr << "IDFS: Identifier format wrong" << endl;
+        cerr << "line " << token.line << " " << "IDFS: Identifier format wrong" << endl;
         exit(1);
     }
     return "";
@@ -322,17 +314,17 @@ void Parser::ST() {
         ASNST();
     }
     else {
-        cerr << "ST: ST error, unknown sentences." << endl;
+        cerr << "line " << token.line << " " << "ST: ST error, unknown sentences." << endl;
     }
 }
 
 // CPLXST—>'BEGIN' ST{;ST}'END'
 void Parser::CPLXST() {
     if (token.type == "BEGIN") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
     }
     else {
-        cerr << "CPLXST: Missing \'BEGIN\' with complex sentence" << endl;
+        cerr << "line " << token.line << " " << "CPLXST: Missing \'BEGIN\' with complex sentence" << endl;
         exit(1);
     }
     while (true) {
@@ -342,15 +334,15 @@ void Parser::CPLXST() {
             //    cerr << "CPLXST: excessive \';\' before END" << endl;
             //    exit(1);
             //}
-            token = lexer.getNext();
+            token = lexer.getNextToken();
             continue;
         }
         else if ("END" == token.type) {
-            token = lexer.getNext();
+            token = lexer.getNextToken();
             break;
         }
         else {
-            cerr << "CPLXST: Sentence ends with wrong codes, consider using \'END\'" << endl;
+            cerr << "line " << token.line << " " << "CPLXST: Sentence ends with wrong codes, consider using \'END\'" << endl;
             exit(1);
         }
     }   
@@ -361,20 +353,20 @@ void Parser::ASNST(){
     string result = IDFS();
     var existed = findIDFS(result);
     if(existed.name == "<null>"){
-        cerr << "ASNST: unstated identifier " << "\'" << result << "\'" << endl;
+        cerr << "line " << token.line << " " << "ASNST: unstated identifier " << "\'" << result << "\'" << endl;
         exit(1);
     }
     else if(existed.type == VarType::Const) {
-        cerr<<"ASNST: const identifier"<< existed.name <<" cannot be assigned."<<endl;
+        cerr << "line " << token.line << " " << "ASNST: const identifier"<< existed.name<<" cannot be assigned."<<endl;
         exit(1);
     }
     string opt = "";
     if (token.type == ":=") {
         opt = token.type;
-        token = lexer.getNext();
+        token = lexer.getNextToken();
     }
     else {
-        cerr << "ASNST: Assignment sentence wrong: not using \':=\'" << endl;
+        cerr << "line " << token.line << " " << "Assignment sentence wrong: not using \':=\'" << endl;
         exit(1);
     }
     string arg1 = EXP();
@@ -387,17 +379,17 @@ void Parser::ASNST(){
 string Parser::EXP() {
     string T_part;
     if (token.type == "AOP" && token.value == "+") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         T_part = T();
     }
     else if(token.type == "AOP" && token.value == "-") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         if (token.type == "ID") {
             T_part = getTemp();
             emit("uminus", T(), "-", T_part); // return register name
         }
         else {
-            cerr << "EXP: The system only support unsigned integer. Got wrong number: -"<< token.value << endl;
+            cerr << "line " << token.line << " " << "EXP: The system only support unsigned integer. Got wrong number: -"<< token.value << endl;
             exit(1);
         }
     }
@@ -405,7 +397,7 @@ string Parser::EXP() {
         T_part = T();
     }
     else {
-        cerr << "EXP: Wrong expression" << endl;
+        cerr << "line " << token.line << " " << "EXP: Wrong expression" << endl;
         exit(1);
     }
     return _EXP(T_part);
@@ -447,13 +439,12 @@ string Parser::_T(const string& arg1) {
 
 // F—>IDFS|UINT|(EXP)
 string Parser::F() {
-    token = lexer.getToken();
     string result;
     if ("ID" == token.type) {
         result = IDFS();
         var existed = findIDFS(result);
         if(existed.name == "<null>"){
-            cerr << "ASNST: unstated identifier " << "\'" << result << "\'" << endl;
+            cerr << "line " << token.line << " " << "ASNST: unstated identifier " << "\'" << result << "\'" << endl;
             exit(1);
         }
     }
@@ -461,18 +452,18 @@ string Parser::F() {
         result = UINT();
     }
     else if ("(" == token.type) {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         result = EXP();
         if (")" == token.type) {
-            token = lexer.getNext();
+            token = lexer.getNextToken();
         }
         else {
-            cerr << "F: curves unmatched" << endl;
+            cerr << "line " << token.line << " " << "F: curves unmatched" << endl;
             exit(1);
         }
     }
     else {
-        cerr << "F: Wrong Factor" << endl;
+        cerr << "line " << token.line << " " << "F: Wrong Factor" << endl;
         exit(1);
     }
     return result;
@@ -480,10 +471,9 @@ string Parser::F() {
 
 // AOP—>+|-
 string Parser::AOP() {
-    token = lexer.getToken();
     if (token.type == "AOP") {
         string result = token.value;
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         return result;
     }
     else if (token.type == "PROGRAM" || token.type == "BEGIN" || token.type == "END" || token.type == "CONST" || token.type == "VAR" || token.type == "WHILE" || token.type == "DO" || token.type == "IF" || token.type == "THEN") {
@@ -491,7 +481,7 @@ string Parser::AOP() {
         exit(1);
     }
     else {
-        cerr << "AOP: Wrong add and substract operator." << endl;
+        cerr << "line " << token.line << " " << "AOP: Wrong add and substract operator" << endl;
         exit(1);
     }
     return "";
@@ -499,19 +489,18 @@ string Parser::AOP() {
 
 // MOP->*|/
 string Parser::MOP() {
-    token = lexer.getToken();
     if (token.type == "MOP") {
         string result = token.value;
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         return result;
     }
     // else if token.type == 保留字 返回错误信息
     else if (token.type == "PROGRAM" || token.type == "BEGIN" || token.type == "END" || token.type == "CONST" || token.type == "VAR" || token.type == "WHILE" || token.type == "DO" || token.type == "IF" || token.type == "THEN") {
-        cerr << "MOP: Unexpected reserved identifier: " << token.type << endl;
+        cerr << "line " << token.line << " " << "Unexpected reserved identifier: " << token.type << endl;
         exit(1);
     }
     else {
-        cerr << "MOP: Wrong multiplication and Division operator" << endl;
+        cerr << "line " << token.line << " " << "wrong multiplication and Division operator" << token.type<< endl;
         exit(1);
     }
     return "";
@@ -519,23 +508,22 @@ string Parser::MOP() {
 
 // CONDST->IF COND THEN ST
 void Parser::CONDST() {
-    token = lexer.getToken();
     if ("IF" == token.type) {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         int filling_in = COND();
         if (token.type == "THEN") {
-            token = lexer.getNext();
+            token = lexer.getNextToken();
             ST();
             // get address to be filled into that code
             MidCode[filling_in].result = to_string(init);
         }
         else {
-            cerr << "CONDST: Error condition sentence, missing \'THEN\'" << endl;
+            cerr << "line " << token.line << " " << "CONDST: Error condition sentence, missing \'THEN\'" << endl;
             exit(1);
         }
     }
     else {
-        cerr << "CONDST: Error condition sentence, missing \'IF\'" << endl;
+        cerr << "line " << token.line << " " << "CONDST: error condition sentence, missing \'IF\'" << endl;
         exit(1);
     }
 }
@@ -543,14 +531,14 @@ void Parser::CONDST() {
 // LOOP->WHILE COND DO ST
 void Parser::LOOP() {
     if (token.type == "WHILE") {
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         int start_address = init;
         int filling_in = COND();
         if (token.type == "DO") {
-            token = lexer.getNext();
+            token = lexer.getNextToken();
         }
         else {
-            cerr << "LOOP: error in loop, missing \'DO\'." << endl;
+            cerr << "line " << token.line << " " << "LOOP: error in loop, missing \'DO\'." << endl;
             exit(1);
         }
         ST();
@@ -558,7 +546,7 @@ void Parser::LOOP() {
         MidCode[filling_in].result = to_string(init);
     }
     else {
-        cerr << "LOOP: error in loop, missing \'WHILE\'." << endl;
+        cerr << "line " << token.line << " " << "LOOP: error in loop, missing \'WHILE\'." << endl;
         exit(1);
     }
 }
@@ -583,11 +571,11 @@ int Parser::COND() {
 string Parser::ROP() {
     if (token.type == "ROP") {
         string result = token.value;
-        token = lexer.getNext();
+        token = lexer.getNextToken();
         return result;
     }
     else {
-        cerr << "ROP: Error condition operator" << endl;
+        cerr << "line " << token.line << " " << "ROP: Error condition operator" << endl;
         exit(1);
     }
     return "";

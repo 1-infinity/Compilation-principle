@@ -10,7 +10,8 @@ Lexer::Lexer(const std::string& filename) : currentChar(' ') {
         std::cerr << "Cannot open file! " << filename << std::endl;
         exit(1);
     }
-    flag = false;
+    line = 1;
+
     keyWord.push_back("PROGRAM");
     keyWord.push_back("BEGIN");
     keyWord.push_back("END");
@@ -39,8 +40,6 @@ Lexer::Lexer(const std::string& filename) : currentChar(' ') {
     boundWord.push_back(';');
     boundWord.push_back(',');
 
-    generateTokens();
-    it = tokens.begin();
 }
 
 Lexer::~Lexer() {
@@ -51,16 +50,16 @@ Token Lexer::getPeekChar() {
     string type;
     char str[2] = { file.peek(),0 };
     type.append(str);
-    return Token(type, "-");
+    return Token(type, "-", line);
 }
 
 // 读取下一个字符
 bool Lexer::readNextChar() {
-    if (file.get(currentChar)) {
-        return true;
-    }
-    else {
+    if (!file.get(currentChar)) {
         currentChar = '$';
+    }
+    else if (currentChar == '\n') {
+        line++;
     }
     return true;
 }
@@ -118,18 +117,17 @@ bool Lexer::isBound(const char s) {
 // 扫描标识符
 Token Lexer::scanIdentifier() {
     string identifier;
-    bool flag = true;
-    while (isalnum(currentChar) && flag) {
+    while (isalnum(currentChar)) {
         identifier += currentChar;
-        flag = readNextChar();
+        readNextChar();
     }
 
     // 检查是否是关键字
     if (isKeyword(identifier)) {
-        return Token(identifier, "-");
+        return Token(identifier, "-",line);
     }
     else {
-        return Token("ID", identifier);
+        return Token("ID", identifier, line);
     }
 }
 
@@ -140,20 +138,20 @@ Token Lexer::scanNumber() {
         number += currentChar;
         readNextChar();
     }
-    return Token("INT", number);
+    return Token("INT", number, line);
 }
 
 // 扫描加法运算符
 Token Lexer::scanAopt() {
     string symbol(1, currentChar);
     readNextChar();
-    return Token("AOP", symbol);
+    return Token("AOP", symbol, line);
 }
 // 扫描乘法运算符
 Token Lexer::scanMopt() {
     string symbol(1, currentChar);
     readNextChar();
-    return Token("MOP", symbol);
+    return Token("MOP", symbol, line);
 }
 // 扫描逻辑运算符
 Token Lexer::scanRopt() {
@@ -165,12 +163,12 @@ Token Lexer::scanRopt() {
         symbol += currentChar;
         if (currentChar == '=') {
             readNextChar();
-            return Token(symbol, "-");
+            return Token(symbol, "-", line);
         }
         readNextChar();
     }
 
-    return Token("ROP", symbol);
+    return Token("ROP", symbol, line);
 }
 
 // 扫描界符
@@ -178,13 +176,16 @@ Token Lexer::scanBound() {
     string symbol(1, currentChar);
     readNextChar();
 
-    return Token(symbol, "-");
+    return Token(symbol, "-", line);
 }
 
 // 获取下一个Token
 Token Lexer::getNextToken() {
 
     skipWhitespace();
+    if (currentChar == '$') {
+        return Token("$", "-", line);
+    }
 
     if (isalpha(currentChar)) {
         return scanIdentifier();
@@ -204,34 +205,9 @@ Token Lexer::getNextToken() {
     else if (isRopt(string(1, currentChar))) {
         return scanRopt();
     }
-    else if (currentChar == '$') {
-        return Token("$", "-");
-    }
     else {
         // 无法识别的字符
         cerr << "error token: " << currentChar << endl;
         exit(1);
     }
-}
-
-list<Token> Lexer::generateTokens() {
-    Token token;
-    do {
-        token = getNextToken();
-        tokens.push_back(token);
-    } while (token.type != "$");
-    return tokens;
-}
-
-Token Lexer::getToken() {
-    return *it;
-}
-
-Token Lexer::nextToken() {
-    return *next(it);
-}
-
-Token Lexer::getNext() {
-    ++it;
-    return *it;
 }
