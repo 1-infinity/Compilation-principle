@@ -85,12 +85,9 @@ private:
     int COND();
     string ROP();
     void NULLST();
-    void M(); // 空，打断
 
     string getTemp();// 寄存器值T1, T2, ...
     int emit(string op, string arg1, string arg2, string result);// 璐熻矗鍐欏叆涓�鏉′腑闂翠唬鐮侊紝杩斿洖璇ヤ唬鐮佺储寮�
-    int getPreCodePtr();
-    int deletePreCode();
     bool existedIDFS(string name);
     var findIDFS(string name);
 public:
@@ -113,11 +110,6 @@ Parser::Parser(const string& filename) :lexer(filename) {
     temp_number = 0;
 }
 
-int Parser::getPreCodePtr()
-{
-    return MidCode.size() - 1;
-}
-
 int Parser::emit(string op, string arg1, string arg2, string result) {
     Code code;
     code.op = op;
@@ -128,16 +120,6 @@ int Parser::emit(string op, string arg1, string arg2, string result) {
     MidCode.push_back(code);
     ptr++;
     return init++;
-}
-
-int Parser::deletePreCode()
-{
-    if (MidCode.empty())
-        return -1;
-    MidCode.pop_back();
-    init--;
-    ptr--;
-    return ptr;
 }
 
 string Parser::getTemp()
@@ -183,7 +165,7 @@ void Parser::PHEAD() {
         token = lexer.getNextToken();
     }
     else {
-        cerr << "line " << token.line << " " << "Program doesn't start with \'PROGRAM\'!" << endl;
+        cerr << "line " << token.line << " " << "PHEAD: Program doesn't start with \'PROGRAM\'!" << endl;
         exit(1);
     }
     IDFS();
@@ -238,7 +220,7 @@ void Parser::CDF() {
         token = lexer.getNextToken();
     }
     else {
-        cerr << "line " << token.line << " " << "Tempt to initilizing const values with error identifier" << endl;
+        cerr << "line " << token.line << " " << "CDF: Tempt to initilizing const values with error identifier" << endl;
         exit(1);
     }
     string number = UINT();
@@ -257,7 +239,7 @@ string Parser::UINT() {
         return result;
     }
     else {
-        cerr <<"line "<<token.line<<" " << "Using error type" << endl;
+        cerr <<"line "<<token.line<<" " << "UINT: Using error type" << endl;
         exit(1);
     }
     return "";
@@ -269,7 +251,7 @@ void Parser::V() {
         token = lexer.getNextToken();
     }
     else {
-        cerr << "line " << token.line << " " << "\'VAR\' symbol missing" << endl;
+        cerr << "line " << token.line << " " << "V: \'VAR\' symbol missing" << endl;
         exit(1);
     }
 
@@ -306,7 +288,7 @@ string Parser::IDFS() {
         return result;
     }
     else {
-        cerr << "line " << token.line << " " << "Identifier format wrong" << endl;
+        cerr << "line " << token.line << " " << "IDFS: Identifier format wrong" << endl;
         exit(1);
     }
     return "";
@@ -332,7 +314,7 @@ void Parser::ST() {
         ASNST();
     }
     else {
-        cerr << "line " << token.line << " " << "ST error" << endl;
+        cerr << "line " << token.line << " " << "ST: ST error, unknown sentences." << endl;
     }
 }
 
@@ -342,7 +324,7 @@ void Parser::CPLXST() {
         token = lexer.getNextToken();
     }
     else {
-        cerr << "line " << token.line << " " << "Missing \'BEGIN\' with complex sentence" << endl;
+        cerr << "line " << token.line << " " << "CPLXST: Missing \'BEGIN\' with complex sentence" << endl;
         exit(1);
     }
     while (true) {
@@ -360,7 +342,7 @@ void Parser::CPLXST() {
             break;
         }
         else {
-            cerr << "line " << token.line << " " << "sentence ends with wrong codes" << endl;
+            cerr << "line " << token.line << " " << "CPLXST: Sentence ends with wrong codes, consider using \'END\'" << endl;
             exit(1);
         }
     }   
@@ -375,7 +357,7 @@ void Parser::ASNST(){
         exit(1);
     }
     else if(existed.type == VarType::Const) {
-        cerr << "line " << token.line << " " << "ASNST: const identifier cannot be assigned."<<endl;
+        cerr << "line " << token.line << " " << "ASNST: const identifier"<< existed.name<<" cannot be assigned."<<endl;
         exit(1);
     }
     string opt = "";
@@ -407,7 +389,7 @@ string Parser::EXP() {
             emit("uminus", T(), "-", T_part); // return register name
         }
         else {
-            cerr << "line " << token.line << " " << "The system only support unsigned integer." << endl;
+            cerr << "line " << token.line << " " << "EXP: The system only support unsigned integer. Got wrong number: -"<< token.value << endl;
             exit(1);
         }
     }
@@ -415,7 +397,7 @@ string Parser::EXP() {
         T_part = T();
     }
     else {
-        cerr << "line " << token.line << " " << "Wrong expression" << endl;
+        cerr << "line " << token.line << " " << "EXP: Wrong expression" << endl;
         exit(1);
     }
     return _EXP(T_part);
@@ -476,12 +458,12 @@ string Parser::F() {
             token = lexer.getNextToken();
         }
         else {
-            cerr << "line " << token.line << " " << "curves unmatched" << endl;
+            cerr << "line " << token.line << " " << "F: curves unmatched" << endl;
             exit(1);
         }
     }
     else {
-        cerr << "line " << token.line << " " << "Wrong Factor" << endl;
+        cerr << "line " << token.line << " " << "F: Wrong Factor" << endl;
         exit(1);
     }
     return result;
@@ -494,8 +476,12 @@ string Parser::AOP() {
         token = lexer.getNextToken();
         return result;
     }
+    else if (token.type == "PROGRAM" || token.type == "BEGIN" || token.type == "END" || token.type == "CONST" || token.type == "VAR" || token.type == "WHILE" || token.type == "DO" || token.type == "IF" || token.type == "THEN") {
+        cerr << "AOP: Unexpected reserved identifier: " << token.type << endl;
+        exit(1);
+    }
     else {
-        cerr << "line " << token.line << " " << "wrong add and substract operator" << endl;
+        cerr << "line " << token.line << " " << "AOP: Wrong add and substract operator" << endl;
         exit(1);
     }
     return "";
@@ -514,7 +500,7 @@ string Parser::MOP() {
         exit(1);
     }
     else {
-        cerr << "line " << token.line << " " << "wrong multiplication and Division operator" << endl;
+        cerr << "line " << token.line << " " << "wrong multiplication and Division operator" << token.type<< endl;
         exit(1);
     }
     return "";
@@ -532,12 +518,12 @@ void Parser::CONDST() {
             MidCode[filling_in].result = to_string(init);
         }
         else {
-            cerr << "line " << token.line << " " << "error condition sentence" << endl;
+            cerr << "line " << token.line << " " << "CONDST: Error condition sentence, missing \'THEN\'" << endl;
             exit(1);
         }
     }
     else {
-        cerr << "line " << token.line << " " << "error condition sentence" << endl;
+        cerr << "line " << token.line << " " << "CONDST: error condition sentence, missing \'IF\'" << endl;
         exit(1);
     }
 }
@@ -552,7 +538,7 @@ void Parser::LOOP() {
             token = lexer.getNextToken();
         }
         else {
-            cerr << "line " << token.line << " " << "error in loop:lose DO" << endl;
+            cerr << "line " << token.line << " " << "LOOP: error in loop, missing \'DO\'." << endl;
             exit(1);
         }
         ST();
@@ -560,7 +546,7 @@ void Parser::LOOP() {
         MidCode[filling_in].result = to_string(init);
     }
     else {
-        cerr << "line " << token.line << " " << "error in loop:lose WHILE" << endl;
+        cerr << "line " << token.line << " " << "LOOP: error in loop, missing \'WHILE\'." << endl;
         exit(1);
     }
 }
@@ -570,8 +556,14 @@ int Parser::COND() {
     string exp1 = EXP();
     string rop = ROP();
     string exp2 = EXP();
-    emit("j"+rop, exp1, exp2, to_string(init+2));
+    string temp = getTemp();
+
+    emit("j"+rop, exp1, exp2, to_string(init+4));
+
+    emit(":=","0", "-",temp);
     emit("j","-","-","-"); // wait for being filled
+
+    emit(":=","1","-",temp);
     return ptr - 1;
 }
 
@@ -583,7 +575,7 @@ string Parser::ROP() {
         return result;
     }
     else {
-        cerr << "line " << token.line << " " << "error condition operator" << endl;
+        cerr << "line " << token.line << " " << "ROP: Error condition operator" << endl;
         exit(1);
     }
     return "";

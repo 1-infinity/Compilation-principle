@@ -22,4 +22,6 @@ int main() {
 	}
 	// ╧ь╠унд╪Ч
 	outputFile.close();
+
+	return 0;
 }
