@@ -156,13 +156,22 @@ Token Lexer::scanMopt() {
 // 扫描逻辑运算符
 Token Lexer::scanRopt() {
     string symbol(1, currentChar);
+    char c = currentChar;
     readNextChar();
 
     // 检查是否是多字符运算符
+    if (c == '<' && currentChar == '>') {
+
+    }
     if (currentChar == '=' || currentChar == '>') {
         symbol += currentChar;
+        if (!isRopt(symbol)) {
+            cerr << "Illegal operator" << symbol << endl;
+            exit(1);
+        }
         if (currentChar == '=') {
             readNextChar();
+            
             return Token(symbol, "-", line);
         }
         readNextChar();

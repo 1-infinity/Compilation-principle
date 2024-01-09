@@ -4,6 +4,8 @@
 #include <map>
 #include <queue>
 #include <iomanip>
+#include <cctype>
+#include <algorithm>
 #include "lexical_analyzer.h"
 using namespace std;
 
@@ -82,7 +84,7 @@ private:
     string MOP();
     void CONDST();
     void LOOP();
-    int COND();
+    int COND(string& temp);
     string ROP();
     void NULLST();
 
@@ -96,12 +98,60 @@ public:
         P();
         return MidCode;
     }
+    vector<var> getSymbol() const noexcept;
+    void printSymbol(ostream& out) const noexcept;
+    void printCode(ostream& out) const noexcept;
 };
+
+ostream& operator<<(ostream& out, const VarType& var)
+{
+    out << (var == VarType::Const ? "Const" : "Variable");
+    return out;
+}
 
 ostream& operator<<(ostream& out, const Code& code)
 {
     out << setw(10) << code.address << setw(10) << code.op << setw(10) << code.arg1 << setw(10) << code.arg2 << setw(10) << code.result;
     return out;
+}
+
+ostream& operator<<(ostream& out, const var& variable)
+{
+    out << setw(10) << variable.name << setw(10) << variable.type;
+    return out;
+}
+
+vector<var> Parser::getSymbol() const noexcept
+{
+    return VarList;
+}
+
+void Parser::printSymbol(ostream& out) const noexcept
+{
+    out << "###########################################################" << endl;
+    out << "#                                                         #" << endl;
+    out << "#                      Symbol Table                       #" << endl;
+    out << "#                                                         #" << endl;
+    out << "###########################################################" << endl;
+    out << setw(10) << "name" << setw(10) << "type" << endl;
+    for (unsigned int i = 0; i < VarList.size(); i++) {
+        out << VarList[i] << endl;
+    }
+    out << endl;
+}
+
+void Parser::printCode(ostream& out) const noexcept
+{
+    out << "###########################################################" << endl;
+    out << "#                                                         #" << endl;
+    out << "#                     Code Generation                     #" << endl;
+    out << "#                                                         #" << endl;
+    out << "###########################################################" << endl;
+    out << setw(10) << "address" << setw(10) << "operator" << setw(10) << "arg1" << setw(10) << "arg2" << setw(10) << "result" << endl;
+    for (unsigned int i = 0; i < MidCode.size(); i++) {
+        out << MidCode[i] << endl;
+    }
+    out << endl;
 }
 
 Parser::Parser(const string& filename) :lexer(filename) {
@@ -284,6 +334,12 @@ void Parser::V() {
 string Parser::IDFS() {
     if (token.type == "ID") {
         string result = token.value;
+        for (unsigned int i = 0; i < result.length(); i++) {
+            if (result[i] >= 'A' && result[i] <= 'Z') {
+                cerr << "line " << token.line << " " << "IDFS: identifier contains uppercase letter!" << endl;
+                exit(1);
+            }
+        }
         token = lexer.getNextToken();
         return result;
     }
@@ -510,7 +566,8 @@ string Parser::MOP() {
 void Parser::CONDST() {
     if ("IF" == token.type) {
         token = lexer.getNextToken();
-        int filling_in = COND();
+        string ret;
+        int filling_in = COND(ret);
         if (token.type == "THEN") {
             token = lexer.getNextToken();
             ST();
@@ -533,7 +590,8 @@ void Parser::LOOP() {
     if (token.type == "WHILE") {
         token = lexer.getNextToken();
         int start_address = init;
-        int filling_in = COND();
+        string ret;
+        int filling_in = COND(ret);
         if (token.type == "DO") {
             token = lexer.getNextToken();
         }
@@ -552,19 +610,20 @@ void Parser::LOOP() {
 }
 
 // COND->EXP ROP EXP
-int Parser::COND() {
+int Parser::COND(string& Temp) {
     string exp1 = EXP();
     string rop = ROP();
     string exp2 = EXP();
     string temp = getTemp();
 
-    emit("j"+rop, exp1, exp2, to_string(init+4));
+    emit("j"+rop, exp1, exp2, to_string(init+3));
 
     emit(":=","0", "-",temp);
     emit("j","-","-","-"); // wait for being filled
 
     emit(":=","1","-",temp);
-    return ptr - 1;
+    Temp = temp;
+    return ptr - 2;
 }
 
 // ROP-> = | <> | < | <= | > | >=
